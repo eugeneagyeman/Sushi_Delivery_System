@@ -2,13 +2,11 @@ package comp1206.sushi.server;
 
 import java.io.FileReader;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import comp1206.sushi.Launcher;
 import comp1206.sushi.common.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,7 +32,7 @@ public class Server implements ServerInterface {
         logger.info("Starting up server...");
         loadConfiguration("Configuration.txt");
 
-        Postcode restaurantPostcode = new Postcode("SO17 1BJ");
+        /*Postcode restaurantPostcode = new Postcode("SO17 1BJ");
         restaurant = new Restaurant("Mock Restaurant", restaurantPostcode);
 
         Postcode postcode1 = addPostcode("SO17 1TJ");
@@ -70,7 +68,7 @@ public class Server implements ServerInterface {
 
         addDrone(1);
         addDrone(2);
-        addDrone(3);
+        addDrone(3);*/
     }
 
     @Override
@@ -78,8 +76,24 @@ public class Server implements ServerInterface {
         return this.dishes;
     }
 
+    public Dish getDish(String name) {
+        for(Dish dishes: getDishes()) {
+            if(dishes.getName().equals(name)) {
+                return dishes;
+            }
+        }
+        return null;
+    }
+
     @Override
     public Dish addDish(String name, String description, Number price, Number restockThreshold, Number restockAmount) {
+
+        for(Dish existingDishes: getDishes()) {
+            if(existingDishes.getName().equals(name)) {
+                this.notifyUpdate();
+                return existingDishes;
+            }
+        }
         Dish newDish = new Dish(name, description, price, restockThreshold, restockAmount);
         this.dishes.add(newDish);
         this.notifyUpdate();
@@ -131,6 +145,13 @@ public class Server implements ServerInterface {
     @Override
     public Ingredient addIngredient(String name, String unit, Supplier supplier,
                                     Number restockThreshold, Number restockAmount, Number weight) {
+
+        for(Ingredient existingIngredient: getIngredients()) {
+            if(existingIngredient.getName().equals(name)) {
+                this.notifyUpdate();
+                return existingIngredient;
+            }
+        }
         Ingredient mockIngredient = new Ingredient(name, unit, supplier, restockThreshold, restockAmount, weight);
         this.ingredients.add(mockIngredient);
         this.notifyUpdate();
@@ -201,9 +222,24 @@ public class Server implements ServerInterface {
         this.notifyUpdate();
     }
 
+
     @Override
     public List<Order> getOrders() {
         return this.orders;
+    }
+
+    public Order addOrder(String user) {
+        for(Order existingOrder : getOrders()) {
+            if(existingOrder.getUser().getName().equals(user)) {
+                this.notifyUpdate();
+                return existingOrder;
+            }
+        }
+
+        Order mockOrder = new Order(addUser(user));
+        this.orders.add(mockOrder);
+        this.notifyUpdate();
+        return mockOrder;
     }
 
     @Override
@@ -273,15 +309,30 @@ public class Server implements ServerInterface {
 
     @Override
     public Postcode addPostcode(String code) {
+        //get current postcodes
+        //if matches exisiting one return that one else add it in
+
+        for(Postcode existingPostcode: this.postcodes) {
+            if (existingPostcode.getName().equals(code)) {
+                this.notifyUpdate();
+                System.out.println("Existing postcode");
+                return existingPostcode;
+            }
+        }
+
         Postcode mock = new Postcode(code);
         this.postcodes.add(mock);
         this.notifyUpdate();
         return mock;
+
+
     }
 
     @Override
     public void removePostcode(Postcode postcode) throws UnableToDeleteException {
-        this.postcodes.remove(postcode);
+        if(!postcodes.contains(postcode)) throw new UnableToDeleteException("Postcode does not exist"); else {
+            this.postcodes.remove(postcode);
+        }
         this.notifyUpdate();
     }
 
@@ -424,6 +475,27 @@ public class Server implements ServerInterface {
         return restaurant;
     }
 
+    public void addDishToOrder(Order order, Dish dish, Number quantity) {
+        if (quantity == valueOf(0)) {
+            //removeDishFromOrder(dish, quantity);
+        } else {
+            order.getCurrentOrder().put(dish, quantity);
+        }
+    }
+
+    public void removeDishfromOrder(Order order, Dish dish) {
+        order.getCurrentOrder().remove(dish);
+        this.notifyUpdate();
+    }
+
+    public User addUser(String name) {
+        for(User existingUsers: users) {
+            if(existingUsers.getName().equals(name)) return existingUsers;
+        }
+        return null;
+    }
+
+
 
     /*
             Take a file input
@@ -530,9 +602,15 @@ public class Server implements ServerInterface {
             Matcher matcher = supplierPattern.matcher(supplier);
 
             while (matcher.find()) {
-                System.out.println("Supplier: " + matcher.group(1));
-                System.out.println("Postcode: " + matcher.group(2));
+                String parsedSupplier = matcher.group(1);
+                String parsedPostcode = matcher.group(2);
+
                 System.out.println();
+                System.out.println("Supplier: " + parsedSupplier);
+                System.out.println("Postcode: " + parsedPostcode);
+                System.out.println();
+
+                addSupplier(parsedSupplier,addPostcode(parsedPostcode));
 
             }
         }
@@ -542,13 +620,30 @@ public class Server implements ServerInterface {
             Matcher matcher = ingredientPattern.matcher(ingredients);
 
             while (matcher.find()) {
-                System.out.println("Ingredient: " + matcher.group(1));
-                System.out.println("Units: " + matcher.group(2));
-                System.out.println("Supplier: " + matcher.group(3));
-                System.out.println("Restock Threshold: " + matcher.group(4));
-                System.out.println("Restock Amount: " + matcher.group(5));
-                System.out.println("Weight: " + matcher.group(6));
+                String name = matcher.group(1);
+                String units = matcher.group(2);
+                String supplier = matcher.group(3);
+                Integer restock_threshold = valueOf(matcher.group(4));
+                Integer restock_amount = valueOf(matcher.group(5));
+                Integer weight = valueOf(matcher.group(6));
+
+                Supplier supplierFromSys = null;
+                for(Supplier existingSuppliers: getSuppliers()) {
+                    if(existingSuppliers.getName().equals(supplier)) {
+                        supplierFromSys = existingSuppliers;
+                        System.out.println("Existing supplier");
+                    }
+                }
+
+                System.out.println("Ingredient: " + name);
+                System.out.println("Units: " + units);
+                System.out.println("Supplier: " + supplier);
+                System.out.println("Restock Threshold: " + restock_threshold);
+                System.out.println("Restock Amount: " + restock_amount);
+                System.out.println("Weight: " + weight);
                 System.out.println();
+
+                addIngredient(name,units,supplierFromSys,restock_threshold,restock_amount,weight);
 
 
             }
@@ -567,12 +662,31 @@ public class Server implements ServerInterface {
                 System.out.println("Ingredients: " + matcher.group(6));
                 System.out.println();
 
+                String dishName = matcher.group(1);
+                String description = matcher.group(2);
+                Integer price = valueOf(matcher.group(3));
+                Integer restock_threshold = valueOf(matcher.group(4));
+                Integer restock_amount = valueOf(matcher.group(5));
+
+                Dish definedDish = addDish(dishName,description,price,restock_threshold,restock_amount);
+
                 Pattern ingredientsDishPattern = Pattern.compile("((\\d+) \\* (\\w+))");
                 Matcher ingredientMatcher = ingredientsDishPattern.matcher(matcher.group(6));
 
                 while (ingredientMatcher.find()) {
                     System.out.println("Ingredient: " + ingredientMatcher.group(3));
                     System.out.println("Quantity: " + ingredientMatcher.group(2) + "\n");
+
+                    String parsedIngredient = ingredientMatcher.group(3);
+                    Integer parsedIngredientQuantity = valueOf(ingredientMatcher.group(2));
+
+                    Ingredient ingredientFromSys = null;
+
+                    for(Ingredient ingredient: getIngredients()) {
+                        if(ingredient.getName().equals(parsedIngredient)) ingredientFromSys = ingredient;
+                    }
+
+                    addIngredientToDish(definedDish,ingredientFromSys,parsedIngredientQuantity);
                 }
 
             }
@@ -588,6 +702,13 @@ public class Server implements ServerInterface {
                 System.out.println("Location: " + matcher.group(3));
                 System.out.println("Postcode: " + matcher.group(4));
                 System.out.println();
+
+                String username = matcher.group(1);
+                String password = matcher.group(2);
+                String location = matcher.group(3);
+                String postcode = matcher.group(4);
+
+                getUsers().add(new User(username,password,location,addPostcode(postcode)));
 
             }
         }
@@ -613,6 +734,8 @@ public class Server implements ServerInterface {
                 System.out.println("User: " + matcher.group(1));
                 System.out.println();
 
+                Order parsedOrder = addOrder(matcher.group(1));
+
 
                 Pattern dishOrderPattern = Pattern.compile("((\\d+) \\* (\\w+\\s*\\w*))");
                 System.out.println(matcher.group(2));
@@ -621,6 +744,10 @@ public class Server implements ServerInterface {
                 while (orderMatcher.find()) {
                     System.out.println("Dish: " + orderMatcher.group(3));
                     System.out.println("Quantity: " + orderMatcher.group(2));
+
+                    Dish dishToAdd = getDish(orderMatcher.group(3));
+                    Integer quantity = valueOf(orderMatcher.group(2));
+                    addDishToOrder(parsedOrder,dishToAdd,quantity);
                     System.out.println();
                 }
             }
