@@ -1,7 +1,7 @@
 package comp1206.sushi.common;
 
-import comp1206.sushi.common.Postcode;
-import comp1206.sushi.common.User;
+import java.util.HashMap;
+import java.util.Map;
 
 public class User extends Model {
 	
@@ -9,12 +9,16 @@ public class User extends Model {
 	private String password;
 	private String address;
 	private Postcode postcode;
+	private Map<Dish,Number> basket;
+
 
 	public User(String username, String password, String address, Postcode postcode) {
 		this.name = username;
 		this.password = password;
 		this.address = address;
 		this.postcode = postcode;
+		this.basket = new HashMap<>();
+
 	}
 
 	public String getName() {
@@ -37,4 +41,23 @@ public class User extends Model {
 		this.postcode = postcode;
 	}
 
+	public Map<Dish, Number> getBasket() {
+		return basket;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public String getAddress() {
+		return address;
+	}
+
+	public void setAddress(String address) {
+		this.address = address;
+	}
 }

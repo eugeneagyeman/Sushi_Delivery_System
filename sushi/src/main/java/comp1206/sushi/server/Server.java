@@ -18,14 +18,14 @@ public class Server implements ServerInterface {
     private static final Logger logger = LogManager.getLogger("Server");
 
     public Restaurant restaurant;
-    public ArrayList<Dish> dishes = new ArrayList<Dish>();
+    public static ArrayList<Dish> dishes = new ArrayList<Dish>();
     public ArrayList<Drone> drones = new ArrayList<Drone>();
     public ArrayList<Ingredient> ingredients = new ArrayList<Ingredient>();
-    public ArrayList<Order> orders = new ArrayList<Order>();
+    public static ArrayList<Order> orders = new ArrayList<Order>();
     public ArrayList<Staff> staff = new ArrayList<Staff>();
     public ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
-    public ArrayList<User> users = new ArrayList<User>();
-    public ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
+    public static ArrayList<User> users = new ArrayList<User>();
+    public static ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
     private ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
 
     public Server() {
@@ -304,7 +304,7 @@ public class Server implements ServerInterface {
 
     @Override
     public List<Postcode> getPostcodes() {
-        return this.postcodes;
+        return postcodes;
     }
 
     @Override
@@ -475,16 +475,16 @@ public class Server implements ServerInterface {
         return restaurant;
     }
 
-    public void addDishToOrder(Order order, Dish dish, Number quantity) {
+    public void addDishToOrder(User user, Dish dish, Number quantity) {
         if (quantity == valueOf(0)) {
-            //removeDishFromOrder(dish, quantity);
+            //removeDishfromOrder(user, quantity);
         } else {
-            order.getCurrentOrder().put(dish, quantity);
+            user.getBasket().put(dish, quantity);
         }
     }
 
-    public void removeDishfromOrder(Order order, Dish dish) {
-        order.getCurrentOrder().remove(dish);
+    public void removeDishfromOrder(User user, Dish dish) {
+        user.getBasket().remove(dish);
         this.notifyUpdate();
     }
 
@@ -747,7 +747,7 @@ public class Server implements ServerInterface {
 
                     Dish dishToAdd = getDish(orderMatcher.group(3));
                     Integer quantity = valueOf(orderMatcher.group(2));
-                    addDishToOrder(parsedOrder,dishToAdd,quantity);
+                    //addDishToOrder(parsedOrder,dishToAdd,quantity);
                     System.out.println();
                 }
             }

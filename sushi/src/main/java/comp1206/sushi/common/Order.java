@@ -14,13 +14,11 @@ public class Order extends Model {
 
 	private String status;
 	private User user;
-	private Map<Dish,Number> orders;
-	
+
 	public Order() {
 		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/YYYY HH:mm:ss");  
 		LocalDateTime now = LocalDateTime.now();  
 		this.name = dtf.format(now);
-		this.orders = new HashMap<>();
 	}
 
 	public Order(User user) {
@@ -28,7 +26,6 @@ public class Order extends Model {
 		LocalDateTime now = LocalDateTime.now();
 		this.name = dtf.format(now);
 		this.user = user;
-		this.orders = new HashMap<>();
 	}
 
 	public Number getDistance() {
@@ -46,10 +43,6 @@ public class Order extends Model {
 
 	public User getUser() {
 		return user;
-	}
-
-	public Map<Dish, Number> getCurrentOrder() {
-		return orders;
 	}
 
 	public void setStatus(String status) {
