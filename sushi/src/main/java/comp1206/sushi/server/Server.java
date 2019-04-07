@@ -2,6 +2,7 @@ package comp1206.sushi.server;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
@@ -11,6 +12,8 @@ import comp1206.sushi.Launcher;
 import comp1206.sushi.common.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import static java.lang.Integer.*;
 
 public class Server implements ServerInterface {
 
@@ -28,15 +31,11 @@ public class Server implements ServerInterface {
     private ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
 
     public Server() {
-        try {
-            new Configuration("/Users/eugeneagyeman/Documents/Computer Science Part 1/Programming 2/Coursework_2/sushi/Comp1206CW2/Configuration.txt");
-        } catch (IOException e) {
-            System.out.println("Config File Not Parsed");
-        }
         logger.info("Starting up server...");
+        loadConfiguration("Configuration.txt");
 
         Postcode restaurantPostcode = new Postcode("SO17 1BJ");
-        restaurant = new Restaurant("Mock Restaurant",restaurantPostcode);
+        restaurant = new Restaurant("Mock Restaurant", restaurantPostcode);
 
         Postcode postcode1 = addPostcode("SO17 1TJ");
         Postcode postcode2 = addPostcode("SO17 1BX");
@@ -44,26 +43,26 @@ public class Server implements ServerInterface {
         Postcode postcode4 = addPostcode("SO17 1TW");
         Postcode postcode5 = addPostcode("SO17 2LB");
 
-        Supplier supplier1 = addSupplier("Supplier 1",postcode1);
-        Supplier supplier2 = addSupplier("Supplier 2",postcode2);
-        Supplier supplier3 = addSupplier("Supplier 3",postcode3);
+        Supplier supplier1 = addSupplier("Supplier 1", postcode1);
+        Supplier supplier2 = addSupplier("Supplier 2", postcode2);
+        Supplier supplier3 = addSupplier("Supplier 3", postcode3);
 
-        Ingredient ingredient1 = addIngredient("Ingredient 1","grams",supplier1,1,5,1);
-        Ingredient ingredient2 = addIngredient("Ingredient 2","grams",supplier2,1,5,1);
-        Ingredient ingredient3 = addIngredient("Ingredient 3","grams",supplier3,1,5,1);
+        Ingredient ingredient1 = addIngredient("Ingredient 1", "grams", supplier1, 1, 5, 1);
+        Ingredient ingredient2 = addIngredient("Ingredient 2", "grams", supplier2, 1, 5, 1);
+        Ingredient ingredient3 = addIngredient("Ingredient 3", "grams", supplier3, 1, 5, 1);
 
-        Dish dish1 = addDish("Dish 1","Dish 1",1,1,10);
-        Dish dish2 = addDish("Dish 2","Dish 2",2,1,10);
-        Dish dish3 = addDish("Dish 3","Dish 3",3,1,10);
+        Dish dish1 = addDish("Dish 1", "Dish 1", 1, 1, 10);
+        Dish dish2 = addDish("Dish 2", "Dish 2", 2, 1, 10);
+        Dish dish3 = addDish("Dish 3", "Dish 3", 3, 1, 10);
 
         orders.add(new Order());
 
-        addIngredientToDish(dish1,ingredient1,1);
-        addIngredientToDish(dish1,ingredient2,2);
-        addIngredientToDish(dish2,ingredient2,3);
-        addIngredientToDish(dish2,ingredient3,1);
-        addIngredientToDish(dish3,ingredient1,2);
-        addIngredientToDish(dish3,ingredient3,1);
+        addIngredientToDish(dish1, ingredient1, 1);
+        addIngredientToDish(dish1, ingredient2, 2);
+        addIngredientToDish(dish2, ingredient2, 3);
+        addIngredientToDish(dish2, ingredient3, 1);
+        addIngredientToDish(dish3, ingredient1, 2);
+        addIngredientToDish(dish3, ingredient3, 1);
 
         addStaff("Staff 1");
         addStaff("Staff 2");
@@ -81,7 +80,7 @@ public class Server implements ServerInterface {
 
     @Override
     public Dish addDish(String name, String description, Number price, Number restockThreshold, Number restockAmount) {
-        Dish newDish = new Dish(name,description,price,restockThreshold,restockAmount);
+        Dish newDish = new Dish(name, description, price, restockThreshold, restockAmount);
         this.dishes.add(newDish);
         this.notifyUpdate();
         return newDish;
@@ -98,8 +97,8 @@ public class Server implements ServerInterface {
         Random random = new Random();
         List<Dish> dishes = getDishes();
         HashMap<Dish, Number> levels = new HashMap<Dish, Number>();
-        for(Dish dish : dishes) {
-            levels.put(dish,random.nextInt(50));
+        for (Dish dish : dishes) {
+            levels.put(dish, random.nextInt(50));
         }
         return levels;
     }
@@ -132,7 +131,7 @@ public class Server implements ServerInterface {
     @Override
     public Ingredient addIngredient(String name, String unit, Supplier supplier,
                                     Number restockThreshold, Number restockAmount, Number weight) {
-        Ingredient mockIngredient = new Ingredient(name,unit,supplier,restockThreshold,restockAmount,weight);
+        Ingredient mockIngredient = new Ingredient(name, unit, supplier, restockThreshold, restockAmount, weight);
         this.ingredients.add(mockIngredient);
         this.notifyUpdate();
         return mockIngredient;
@@ -152,7 +151,7 @@ public class Server implements ServerInterface {
 
     @Override
     public Supplier addSupplier(String name, Postcode postcode) {
-        Supplier mock = new Supplier(name,postcode);
+        Supplier mock = new Supplier(name, postcode);
         this.suppliers.add(mock);
         return mock;
     }
@@ -225,8 +224,8 @@ public class Server implements ServerInterface {
         Random random = new Random();
         List<Ingredient> dishes = getIngredients();
         HashMap<Ingredient, Number> levels = new HashMap<Ingredient, Number>();
-        for(Ingredient ingredient : ingredients) {
-            levels.put(ingredient,random.nextInt(50));
+        for (Ingredient ingredient : ingredients) {
+            levels.put(ingredient, random.nextInt(50));
         }
         return levels;
     }
@@ -243,16 +242,16 @@ public class Server implements ServerInterface {
 
     @Override
     public Number getOrderDistance(Order order) {
-        Order mock = (Order)order;
+        Order mock = (Order) order;
         return mock.getDistance();
     }
 
     @Override
     public void addIngredientToDish(Dish dish, Ingredient ingredient, Number quantity) {
-        if(quantity == Integer.valueOf(0)) {
-            removeIngredientFromDish(dish,ingredient);
+        if (quantity == valueOf(0)) {
+            removeIngredientFromDish(dish, ingredient);
         } else {
-            dish.getRecipe().put(ingredient,quantity);
+            dish.getRecipe().put(ingredient, quantity);
         }
     }
 
@@ -300,12 +299,18 @@ public class Server implements ServerInterface {
     @Override
     public void loadConfiguration(String filename) {
         System.out.println("Loaded configuration: " + filename);
+        try {
+            new Configuration(filename);
+        } catch (IOException e) {
+            System.err.println("File not found");
+        }
+
     }
 
     @Override
     public void setRecipe(Dish dish, Map<Ingredient, Number> recipe) {
-        for(Entry<Ingredient, Number> recipeItem : recipe.entrySet()) {
-            addIngredientToDish(dish,recipeItem.getKey(),recipeItem.getValue());
+        for (Entry<Ingredient, Number> recipeItem : recipe.entrySet()) {
+            addIngredientToDish(dish, recipeItem.getKey(), recipeItem.getValue());
         }
         this.notifyUpdate();
     }
@@ -318,7 +323,7 @@ public class Server implements ServerInterface {
     @Override
     public String getOrderStatus(Order order) {
         Random rand = new Random();
-        if(rand.nextBoolean()) {
+        if (rand.nextBoolean()) {
             return "Complete";
         } else {
             return "Pending";
@@ -328,7 +333,7 @@ public class Server implements ServerInterface {
     @Override
     public String getDroneStatus(Drone drone) {
         Random rand = new Random();
-        if(rand.nextBoolean()) {
+        if (rand.nextBoolean()) {
             return "Idle";
         } else {
             return "Flying";
@@ -338,7 +343,7 @@ public class Server implements ServerInterface {
     @Override
     public String getStaffStatus(Staff staff) {
         Random rand = new Random();
-        if(rand.nextBoolean()) {
+        if (rand.nextBoolean()) {
             return "Idle";
         } else {
             return "Working";
@@ -432,20 +437,23 @@ public class Server implements ServerInterface {
             Parse each line with model
             Input the parsed data
             Create the models using parsed data
+    */
+    class Configuration {
+        private Scanner sc;
 
-             */
-    static class Configuration {
-        private static Scanner sc;
+        private ArrayList<String> parsedPostcodes = new ArrayList<>();
 
-        public Configuration(String filename) throws IOException {
+
+
+        Configuration(String filename) throws IOException {
             sc = new Scanner(new FileReader(filename));
             parse();
         }
 
-        public static void parse() throws IOException {
-            while(sc.hasNextLine()) {
+        void parse() throws IOException {
+            while (sc.hasNextLine()) {
                 String line = sc.nextLine();
-                switch(line.split(":")[0]) {
+                switch (line.split(":")[0]) {
 
                     case "POSTCODE":
                         postcodeParse(line);
@@ -468,23 +476,23 @@ public class Server implements ServerInterface {
                         break;
 
                     case "USER":
-                        //userParse();
+                        userParse(line);
                         break;
 
                     case "ORDER":
-                        //orderParse();
+                        orderParse(line);
                         break;
 
                     case "STOCK":
-                        //stockParse();
+                        stockParse(line);
                         break;
 
                     case "STAFF":
-                        //staffParse();
+                        staffParse(line);
                         break;
 
                     case "DRONE":
-                        //droneParse();
+                        droneParse(line);
                         break;
 
                     default:
@@ -495,91 +503,138 @@ public class Server implements ServerInterface {
             }
         }
 
-        public static void postcodeParse(String postcode) throws IOException {
-            Pattern postcodePattern = Pattern.compile("^(POSTCODE:)(.+)$", Pattern.MULTILINE);
+        void postcodeParse(String postcode) throws IOException {
+            Pattern postcodePattern = Pattern.compile("^POSTCODE:(.+)$", Pattern.MULTILINE);
             Matcher matcher = postcodePattern.matcher(postcode);
 
-            while(matcher.find()) {
-                System.out.println("TEST"+matcher.group(2));
-
-            }
-
-
-        }
-
-        public static void restaurantParse(String restaurant) throws IOException {
-            Pattern restaurantPattern = Pattern.compile("^(RESTAURANT):(.+):(.+)$",Pattern.MULTILINE);
-            Matcher matcher = restaurantPattern.matcher(restaurant);
-            while(matcher.find()) {
-                System.out.println("Restaurant "+matcher.group(2));
+            while (matcher.find()) {
+                System.out.println("Postcode: " + matcher.group(1));
+                addPostcode(matcher.group(1));
             }
         }
 
-        public static void supplierParse(String supplier) throws IOException {
-            Pattern supplierPattern = Pattern.compile("^(SUPPLIER):(.+):(.+)$",Pattern.MULTILINE);
+        void restaurantParse(String restaurants) throws IOException {
+            Pattern restaurantPattern = Pattern.compile("^RESTAURANT:(\\w+\\s*+\\w*+):(.+)$", Pattern.MULTILINE);
+            Matcher matcher = restaurantPattern.matcher(restaurants);
+            while (matcher.find()) {
+                System.out.println("Restaurant: " + matcher.group(1));
+                System.out.println("Restaurant Postcode: " + matcher.group(2));
+                System.out.println();
+                restaurant = new Restaurant(matcher.group(1),getPostcodes().get(0));
+
+            }
+        }
+
+         void supplierParse(String supplier) throws IOException {
+            Pattern supplierPattern = Pattern.compile("^SUPPLIER:(.+):(.+)$", Pattern.MULTILINE);
             Matcher matcher = supplierPattern.matcher(supplier);
 
-            while(matcher.find()) {
-                System.out.println("Supplier: " +matcher.group(2));
-                System.out.println("Postcode: "+matcher.group(3));
-            }
-        }
-
-        public final static void ingredientParse(String ingredients) {
-            Pattern ingredientPattern = Pattern.compile("^INGREDIENT:(\\w+):(\\w+):(\\w.+):([0-9]+):([0-9]+):([0-9]+)");
-            Matcher matcher = ingredientPattern.matcher(ingredients);
-
-            while(matcher.find()){
-                System.out.println("Ingredient: "+matcher.group(1));
-                System.out.println("Units: "+matcher.group(2));
-                System.out.println("Supplier: "+matcher.group(3));
-                System.out.println("Restock Threshold: "+matcher.group(4));
-                System.out.println("Restock Amount: "+matcher.group(5));
-                System.out.println("Weight: "+matcher.group(6));
+            while (matcher.find()) {
+                System.out.println("Supplier: " + matcher.group(1));
+                System.out.println("Postcode: " + matcher.group(2));
                 System.out.println();
 
             }
         }
 
-        public static void dishParse(String dishes) {
+        void ingredientParse(String ingredients) {
+            Pattern ingredientPattern = Pattern.compile("^INGREDIENT:(\\w+):(\\w+):(\\w.+):([0-9]+):([0-9]+):([0-9]+)");
+            Matcher matcher = ingredientPattern.matcher(ingredients);
+
+            while (matcher.find()) {
+                System.out.println("Ingredient: " + matcher.group(1));
+                System.out.println("Units: " + matcher.group(2));
+                System.out.println("Supplier: " + matcher.group(3));
+                System.out.println("Restock Threshold: " + matcher.group(4));
+                System.out.println("Restock Amount: " + matcher.group(5));
+                System.out.println("Weight: " + matcher.group(6));
+                System.out.println();
+
+
+            }
+        }
+
+         void dishParse(String dishes) {
             Pattern dishPattern = Pattern.compile("^DISH:(\\w.+):(\\w.+):([0-9]+):([0-9]+):(\\d+):((\\d*)\\s\\*\\s(\\w+).*)");
             Matcher matcher = dishPattern.matcher(dishes);
 
-            while(matcher.find()) {
+            while (matcher.find()) {
                 System.out.println("Dish Name: " + matcher.group(1));
-                System.out.println("Description: "+matcher.group(2));
-                System.out.println("Price: "+matcher.group(3));
-                System.out.println("Restock Threshold: " +matcher.group(4));
-                System.out.println("Restock Amount: " +matcher.group(5));
-                System.out.println("Ingredients: " +matcher.group(6));
+                System.out.println("Description: " + matcher.group(2));
+                System.out.println("Price: " + matcher.group(3));
+                System.out.println("Restock Threshold: " + matcher.group(4));
+                System.out.println("Restock Amount: " + matcher.group(5));
+                System.out.println("Ingredients: " + matcher.group(6));
+                System.out.println();
 
                 Pattern ingredientsDishPattern = Pattern.compile("((\\d+) \\* (\\w+))");
                 Matcher ingredientMatcher = ingredientsDishPattern.matcher(matcher.group(6));
 
-                while(ingredientMatcher.find()){
-                    System.out.println("Ingredient: "+ingredientMatcher.group(3));
-                    System.out.println("Quantity: "+ingredientMatcher.group(2));
+                while (ingredientMatcher.find()) {
+                    System.out.println("Ingredient: " + ingredientMatcher.group(3));
+                    System.out.println("Quantity: " + ingredientMatcher.group(2) + "\n");
                 }
 
             }
         }
 
+         void userParse(String users) {
+            Pattern userPattern = Pattern.compile("^USER:(\\w+):(\\w+):(\\w.+):(\\w.+)", Pattern.MULTILINE);
+            Matcher matcher = userPattern.matcher(users);
 
-        /*
+            while (matcher.find()) {
+                System.out.println("User: " + matcher.group(1));
+                System.out.println("Password: " + matcher.group(2));
+                System.out.println("Location: " + matcher.group(3));
+                System.out.println("Postcode: " + matcher.group(4));
+                System.out.println();
 
-        Format
+            }
+        }
 
-        RESTAURANT:Name:Postcode
-    POSTCODE:Postcode
-    SUPPLIER:Name:Postcode
-    INGREDIENT:Name:Unit:Supplier:Restock Threshold:Restock Amount:Weight
-    DISH:Name:Description:Price:Restock Threshold:Restock Amount:Quantity * Item,Quantity * Item...
-    USER:Name:Password:Location:Postcode
-    STAFF:Name
-    DRONE:Speed
-    ORDER:User:Quantity * Dish
-    STOCK:Dish|Ingredient:Quantity
-        */
+         void staffParse(String staff) {
+            System.out.println("Staff: " + staff.split(":")[1]);
+            System.out.println();
+            addStaff(staff.split(":")[1]);
+
+        }
+
+         void droneParse(String drone) {
+            System.out.println("Drone: " + drone.split(":")[1]);
+            System.out.println();
+            addDrone(valueOf(drone.split(":")[1]));
+        }
+
+         void orderParse(String order) {
+            Pattern orderPattern = Pattern.compile("^ORDER:(\\w+):((\\d) \\* (\\w.+)*+)");
+            Matcher matcher = orderPattern.matcher(order);
+
+            while (matcher.find()) {
+                System.out.println("User: " + matcher.group(1));
+                System.out.println();
+
+
+                Pattern dishOrderPattern = Pattern.compile("((\\d+) \\* (\\w+\\s*\\w*))");
+                System.out.println(matcher.group(2));
+                Matcher orderMatcher = dishOrderPattern.matcher(matcher.group(2));
+
+                while (orderMatcher.find()) {
+                    System.out.println("Dish: " + orderMatcher.group(3));
+                    System.out.println("Quantity: " + orderMatcher.group(2));
+                    System.out.println();
+                }
+            }
+        }
+
+         void stockParse(String stock) {
+            Pattern stockPattern = Pattern.compile("^STOCK:(\\w+\\s*\\w*):(\\d+)", Pattern.MULTILINE);
+            Matcher matcher = stockPattern.matcher(stock);
+
+            while (matcher.find()) {
+                System.out.println("Stock of Dish: " + matcher.group(1));
+                System.out.println("Quantity: " + matcher.group(2));
+            }
+        }
 
 
     }
