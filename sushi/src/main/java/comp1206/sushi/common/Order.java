@@ -2,6 +2,7 @@ package comp1206.sushi.common;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -14,11 +15,20 @@ public class Order extends Model {
 
 	private String status;
 	private User user;
+	private Map<Dish,Number> contents;
+	private boolean fufilled;
+
+
+
+	private Number cost;
 
 	public Order() {
 		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/YYYY HH:mm:ss");  
 		LocalDateTime now = LocalDateTime.now();  
 		this.name = dtf.format(now);
+		contents = new HashMap<>();
+		cost = 0;
+		fufilled = false;
 	}
 
 	public Order(User user) {
@@ -26,6 +36,9 @@ public class Order extends Model {
 		LocalDateTime now = LocalDateTime.now();
 		this.name = dtf.format(now);
 		this.user = user;
+		contents = new HashMap<>();
+		cost = 0;
+		fufilled = false;
 	}
 
 	public Number getDistance() {
@@ -49,6 +62,20 @@ public class Order extends Model {
 		notifyUpdate("status",this.status,status);
 		this.status = status;
 	}
+
+	public void addContents(Map<Dish, Number> basket){
+		this.contents = basket;
+	}
+
+	public Number getCost() {
+		return cost;
+	}
+
+	public void setCost(Number cost) {
+		notifyUpdate("cost",this.cost,cost);
+		this.cost = cost;
+	}
+
 
 
 
