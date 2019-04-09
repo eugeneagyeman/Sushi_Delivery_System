@@ -3,9 +3,6 @@ package comp1206.sushi.common;
 import java.util.HashMap;
 import java.util.Map;
 
-import comp1206.sushi.common.Dish;
-import comp1206.sushi.common.Ingredient;
-
 public class Dish extends Model {
 
 	private String name;
@@ -71,5 +68,6 @@ public class Dish extends Model {
 	public Number getRestockAmount() {
 		return this.restockAmount;
 	}
+
 
 }

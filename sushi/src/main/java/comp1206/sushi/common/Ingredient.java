@@ -69,5 +69,4 @@ public class Ingredient extends Model {
 	public void setWeight(Number weight) {
 		this.weight = weight;
 	}
-
 }

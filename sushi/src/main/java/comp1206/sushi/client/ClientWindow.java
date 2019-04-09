@@ -748,7 +748,7 @@ public class ClientWindow extends JFrame implements UpdateListener {
 					} else {
 						try {
 							Method method = model.getClass().getDeclaredMethod("get" + columnName);
-							Object result = method.invoke(model, new Object[] {});
+							Object result = method.invoke(model);
 							if(result instanceof Model) {
 								data[index][col] = ((Model) result).getName();
 							} else {

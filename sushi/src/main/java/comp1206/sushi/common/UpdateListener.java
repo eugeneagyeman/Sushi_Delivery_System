@@ -13,6 +13,6 @@ public interface UpdateListener {
 	 * Receive a notification of a model update with the given UpdateEvent containing the update information.
 	 * @param updateEvent information on the update
 	 */
-	public void updated(UpdateEvent updateEvent);
+    void updated(UpdateEvent updateEvent);
 
 }

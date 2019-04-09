@@ -10,6 +10,7 @@ public class User extends Model {
 	private String password;
 	private String address;
 	private Postcode postcode;
+
 	private Map<Dish,Number> basket;
 
 	private ArrayList<Order> orders;
@@ -47,6 +48,10 @@ public class User extends Model {
 
 	public Map<Dish, Number> getBasket() {
 		return basket;
+	}
+
+	public void setBasket(Map<Dish, Number> basket) {
+		this.basket = basket;
 	}
 
 	public String getPassword() {

@@ -100,7 +100,7 @@ public class Client implements ClientInterface {
 	public User register(String username, String password, String address, Postcode postcode) {
 		User mockUser = new User(username,password,address,postcode);
 		//add to server
-		this.users.add(mockUser);
+		users.add(mockUser);
 		//update ui
 		return mockUser;
 	}
@@ -161,6 +161,7 @@ public class Client implements ClientInterface {
 	public void updateDishInBasket(User user, Dish dish, Number quantity) {
 		//get old quantity of dish
 		Number oldQuantity = user.getBasket().get(dish);
+
 		user.getBasket().replace(dish, oldQuantity, quantity);
 		this.notifyUpdate();
 		//UpdateEvent updateBasket = new UpdateEvent(user,"Basket",oldQuantity,quantity);
