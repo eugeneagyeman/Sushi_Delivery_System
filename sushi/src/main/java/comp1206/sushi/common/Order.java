@@ -2,14 +2,8 @@ package comp1206.sushi.common;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
-
-import comp1206.sushi.common.Order;
-
-import static java.lang.Integer.valueOf;
 
 public class Order extends Model {
 

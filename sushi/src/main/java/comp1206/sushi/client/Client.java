@@ -5,11 +5,8 @@ import java.util.List;
 import java.util.Map;
 
 import comp1206.sushi.common.*;
-import comp1206.sushi.server.Server;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import static java.lang.Integer.valueOf;
 
 public class Client implements ClientInterface {
 

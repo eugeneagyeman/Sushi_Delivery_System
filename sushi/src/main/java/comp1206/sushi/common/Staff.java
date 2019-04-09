@@ -1,8 +1,8 @@
 package comp1206.sushi.common;
 
-import comp1206.sushi.common.Staff;
+import comp1206.sushi.server.StockManagement;
 
-public class Staff extends Model {
+public class Staff extends Model implements Runnable {
 
 	private String name;
 	private String status;
@@ -11,6 +11,7 @@ public class Staff extends Model {
 	public Staff(String name) {
 		this.setName(name);
 		this.setFatigue(0);
+
 	}
 
 	public String getName() {
@@ -38,4 +39,12 @@ public class Staff extends Model {
 		this.status = status;
 	}
 
+	@Override
+	public void run() {
+
+
+		for(Dish dish: StockManagement.getDishes()){
+			StockManagement.build(dish);
+		}
+	}
 }

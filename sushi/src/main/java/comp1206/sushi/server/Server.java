@@ -29,6 +29,9 @@ public class Server implements ServerInterface {
         logger.info("Starting up server...");
         loadConfiguration("Configuration.txt");
 
+        Threading();
+
+
         /*Postcode restaurantPostcode = new Postcode("SO17 1BJ");
         restaurant = new Restaurant("Mock Restaurant", restaurantPostcode);
 
@@ -59,13 +62,33 @@ public class Server implements ServerInterface {
         addIngredientToDish(dish3, ingredient1, 2);
         addIngredientToDish(dish3, ingredient3, 1);
 
-        addStaff("Staff 1");
-        addStaff("Staff 2");
-        addStaff("Staff 3");
+
 
         addDrone(1);
         addDrone(2);
         addDrone(3);*/
+    }
+
+    private void Threading() {
+        Staff test1 = addStaff("Staff 1");
+        Staff test2 = addStaff("Staff 2");
+        Staff test3 =addStaff("Staff 3");
+        Thread testThread1 = new Thread(test1);
+        Thread testThread2 = new Thread(test2);
+        Thread testThread3 =new Thread(test3);
+
+
+        testThread1.start();
+        testThread2.start();
+        testThread3.start();
+
+        try {
+            testThread2.join();
+            testThread3.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
     }
 
     @Override
@@ -159,9 +182,9 @@ public class Server implements ServerInterface {
 
     @Override
     public Supplier addSupplier(String name, Postcode postcode) {
-        Supplier mock = new Supplier(name, postcode);
-        suppliers.add(mock);
-        return mock;
+        Supplier new_supplier = new Supplier(name, postcode);
+        suppliers.add(new_supplier);
+        return new_supplier;
     }
 
 
@@ -256,8 +279,7 @@ public class Server implements ServerInterface {
 
     @Override
     public Number getOrderDistance(Order order) {
-        Order mock = order;
-        return mock.getDistance();
+        return order.getDistance();
     }
 
     @Override
@@ -331,6 +353,7 @@ public class Server implements ServerInterface {
         System.out.println("Loaded configuration: " + filename);
         try {
             new Configuration(filename);
+
         } catch (IOException e) {
             System.err.println("File not found");
         }
@@ -462,98 +485,6 @@ public class Server implements ServerInterface {
         return null;
     }
 
-    static class StockManagement {
-        private static ArrayList<Dish> dishes;
-        private static ArrayList<Ingredient> ingredients;
-
-        private static Map<Ingredient, Number> ingredientsStock = new HashMap<>();
-        private static Map<Dish, Number> dishesStock = new HashMap<>();
-
-        public static Map<Ingredient, Number> getIngredientsStock() {
-                ingredientsTracker();
-                return ingredientsStock;
-
-        }
-
-
-        public static Map<Dish, Number> getDishesStock() {
-                dishesTracker();
-                return dishesStock;
-        }
-
-        public static void ingredientsTracker() {
-
-            for (Ingredient existingIngredient : getIngredients()) {
-               System.out.println("Ingredient: " + existingIngredient.getName()
-                        + " Quantity:" + ingredientsStock.get(existingIngredient) );
-            }
-        }
-
-        public static void dishesTracker() {
-
-            for (Dish existingDish : getDishes()) {
-                System.out.println("Dish: " + existingDish.getName()
-                        + " Quantity: " + dishesStock.get(existingDish));
-            }
-        }
-
-        public static ArrayList<Dish> getDishes() {
-            dishes = new ArrayList<Dish>(dishesStock.keySet());
-            return dishes;
-        }
-
-        public static Dish getDish(String name) {
-            for (Dish dishes : getDishes()) {
-                if (dishes.getName().equals(name)) {
-                    return dishes;
-                }
-            }
-            return null;
-        }
-
-        public static List<Ingredient> getIngredients() {
-            ingredients = new ArrayList<Ingredient>(ingredientsStock.keySet());
-            return ingredients;
-        }
-
-        public static void setIngredients(ArrayList<Ingredient> ingredients) {
-            StockManagement.ingredients = ingredients;
-        }
-
-        public static void restockIngredient(Ingredient ingredient) {
-            int restockThreshold = ingredient.getRestockThreshold().intValue();
-            int restockAmount = ingredient.getRestockAmount().intValue();
-            int quantity = ingredientsStock.get(ingredient).intValue();
-
-            if(quantity <= restockThreshold) {
-                ingredientsStock.replace(ingredient,quantity+=restockAmount);
-            }
-        }
-
-        public static void restockDish(Dish dish) {
-            int restockThreshold = dish.getRestockThreshold().intValue();
-            int quantity = dishesStock.get(dish).intValue();
-            int restockAmount = dish.getRestockAmount().intValue();
-
-            if(quantity <= restockThreshold) {
-                dishesStock.replace(dish,quantity+=restockAmount);
-            }
-        }
-
-        private static void dishIngredientFinder(String itemName, String itemQuantity) {
-            for (Dish dish : StockManagement.getDishes()) {
-                if (dish.getName().equals(itemName)) {
-                    StockManagement.getDishesStock().replace(dish,valueOf(itemQuantity));
-                }
-            }
-
-            for (Ingredient ingredient : StockManagement.getIngredients()) {
-                if (ingredient.getName().equals(itemName)) {
-                    StockManagement.getIngredientsStock().replace(ingredient,valueOf(itemQuantity));
-                }
-            }
-        }
-    }
 
     class Configuration {
         private Scanner sc;
@@ -629,9 +560,9 @@ public class Server implements ServerInterface {
             Pattern restaurantPattern = Pattern.compile("^RESTAURANT:(\\w+\\s*+\\w*+):(.+)$", Pattern.MULTILINE);
             matcher = restaurantPattern.matcher(restaurants);
             while (matcher.find()) {
-                System.out.println("Restaurant: " + matcher.group(1));
+                /*System.out.println("Restaurant: " + matcher.group(1));
                 System.out.println("Restaurant Postcode: " + matcher.group(2));
-                System.out.println();
+                System.out.println();*/
                 restaurant = new Restaurant(matcher.group(1), getPostcodes().get(0));
             }
         }
@@ -644,10 +575,10 @@ public class Server implements ServerInterface {
                 String parsedSupplier = matcher.group(1);
                 String parsedPostcode = matcher.group(2);
 
-                System.out.println();
+                /*System.out.println();
                 System.out.println("Supplier: " + parsedSupplier);
                 System.out.println("Postcode: " + parsedPostcode);
-                System.out.println();
+                System.out.println();*/
 
                 addSupplier(parsedSupplier, addPostcode(parsedPostcode));
 
@@ -670,17 +601,17 @@ public class Server implements ServerInterface {
                 for (Supplier existingSuppliers : getSuppliers()) {
                     if (existingSuppliers.getName().equals(supplier)) {
                         supplierFromSys = existingSuppliers;
-                        System.out.println("Existing supplier");
+                        //System.out.println("Existing supplier");
                     }
                 }
 
-                System.out.println("Ingredient: " + name);
+                /*System.out.println("Ingredient: " + name);
                 System.out.println("Units: " + units);
                 System.out.println("Supplier: " + supplier);
                 System.out.println("Restock Threshold: " + restock_threshold);
                 System.out.println("Restock Amount: " + restock_amount);
                 System.out.println("Weight: " + weight);
-                System.out.println();
+                System.out.println();*/
 
                 addIngredient(name, units, supplierFromSys, restock_threshold, restock_amount, weight);
 
@@ -693,13 +624,13 @@ public class Server implements ServerInterface {
             matcher = dishPattern.matcher(dishes);
 
             while (matcher.find()) {
-                System.out.println("Dish Name: " + matcher.group(1));
+                /*System.out.println("Dish Name: " + matcher.group(1));
                 System.out.println("Description: " + matcher.group(2));
                 System.out.println("Price: " + matcher.group(3));
                 System.out.println("Restock Threshold: " + matcher.group(4));
                 System.out.println("Restock Amount: " + matcher.group(5));
                 System.out.println("Ingredients: " + matcher.group(6));
-                System.out.println();
+                System.out.println();*/
 
                 String dishName = matcher.group(1);
                 String description = matcher.group(2);
@@ -713,8 +644,8 @@ public class Server implements ServerInterface {
                 Matcher ingredientMatcher = ingredientsDishPattern.matcher(matcher.group(6));
 
                 while (ingredientMatcher.find()) {
-                    System.out.println("Ingredient: " + ingredientMatcher.group(3));
-                    System.out.println("Quantity: " + ingredientMatcher.group(2) + "\n");
+                   /* System.out.println("Ingredient: " + ingredientMatcher.group(3));
+                    System.out.println("Quantity: " + ingredientMatcher.group(2) + "\n");*/
 
                     String parsedIngredient = ingredientMatcher.group(3);
                     Integer parsedIngredientQuantity = valueOf(ingredientMatcher.group(2));
@@ -736,11 +667,11 @@ public class Server implements ServerInterface {
             matcher = userPattern.matcher(users);
 
             while (matcher.find()) {
-                System.out.println("User: " + matcher.group(1));
+                /*System.out.println("User: " + matcher.group(1));
                 System.out.println("Password: " + matcher.group(2));
                 System.out.println("Location: " + matcher.group(3));
                 System.out.println("Postcode: " + matcher.group(4));
-                System.out.println();
+                System.out.println();*/
 
                 String username = matcher.group(1);
                 String password = matcher.group(2);
@@ -753,15 +684,15 @@ public class Server implements ServerInterface {
         }
 
         void staffParse(String staff) {
-            System.out.println("Staff: " + staff.split(":")[1]);
-            System.out.println();
+            /*System.out.println("Staff: " + staff.split(":")[1]);
+            System.out.println();*/
             addStaff(staff.split(":")[1]);
 
         }
 
         void droneParse(String drone) {
-            System.out.println("Drone: " + drone.split(":")[1]);
-            System.out.println();
+            /*System.out.println("Drone: " + drone.split(":")[1]);
+            System.out.println();*/
             addDrone(valueOf(drone.split(":")[1]));
         }
 
@@ -771,21 +702,21 @@ public class Server implements ServerInterface {
 
 
             while (matcher.find()) {
-                System.out.println("User: " + matcher.group(1));
+                //System.out.println("User: " + matcher.group(1));
                 String order_username = matcher.group(1);
-                System.out.println();
+                //System.out.println();
                 Map<Dish, Number> orderbasket = new HashMap<>();
 
                 Order parsedOrder = addOrder(order_username);
                 User parsedUser = parsedOrder.getUser();
 
                 Pattern dishOrderPattern = Pattern.compile("((\\d+) \\* (\\w+\\s*\\w*))");
-                System.out.println(matcher.group(2));
+                //System.out.println(matcher.group(2));
                 Matcher orderMatcher = dishOrderPattern.matcher(matcher.group(2));
 
                 while (orderMatcher.find()) {
-                    System.out.println("Dish: " + orderMatcher.group(3));
-                    System.out.println("Quantity: " + orderMatcher.group(2));
+                    //System.out.println("Dish: " + orderMatcher.group(3));
+                    //System.out.println("Quantity: " + orderMatcher.group(2));
 
                     Dish dishToAdd = StockManagement.getDish(orderMatcher.group(3));
                     Integer quantity = valueOf(orderMatcher.group(2));
@@ -808,8 +739,8 @@ public class Server implements ServerInterface {
                 String itemName = matcher.group(1);
                 String itemQuantity = matcher.group(2);
 
-                System.out.println("Stock of Item: " + itemName);
-                System.out.println("Quantity: " + itemQuantity);
+                //System.out.println("Stock of Item: " + itemName);
+                //System.out.println("Quantity: " + itemQuantity);
 
                 StockManagement.dishIngredientFinder(itemName, itemQuantity);
             }

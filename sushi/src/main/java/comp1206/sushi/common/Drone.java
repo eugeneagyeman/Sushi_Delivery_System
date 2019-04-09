@@ -1,7 +1,5 @@
 package comp1206.sushi.common;
 
-import comp1206.sushi.common.Drone;
-
 public class Drone extends Model {
 
 	private Number speed;
