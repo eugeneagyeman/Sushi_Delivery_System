@@ -73,8 +73,6 @@ public class Server implements ServerInterface {
         return StockManagement.getDishes();
     }
 
-
-
     @Override
     public Dish addDish(String name, String description, Number price, Number restockThreshold, Number restockAmount) {
 
@@ -486,17 +484,17 @@ public class Server implements ServerInterface {
         public static void ingredientsTracker() {
 
             for (Ingredient existingIngredient : getIngredients()) {
-          //      System.out.println("Ingredient: " + existingIngredient.getName()
-            //            + " Quantity:" + ingredientsStock.computeIfAbsent(existingIngredient,k -> );
+               System.out.println("Ingredient: " + existingIngredient.getName()
+                        + " Quantity:" + ingredientsStock.get(existingIngredient) );
             }
         }
 
         public static void dishesTracker() {
 
-            /*for (Dish existingDish : getDishes()) {
+            for (Dish existingDish : getDishes()) {
                 System.out.println("Dish: " + existingDish.getName()
-                        + " Quantity: " + dishesStock.computeIfAbsent(existingDish,k->existingDish.getQuantity()));
-            }*/
+                        + " Quantity: " + dishesStock.get(existingDish));
+            }
         }
 
         public static ArrayList<Dish> getDishes() {
@@ -516,29 +514,30 @@ public class Server implements ServerInterface {
         public static List<Ingredient> getIngredients() {
             ingredients = new ArrayList<Ingredient>(ingredientsStock.keySet());
             return ingredients;
-            //return ingredients;
         }
 
         public static void setIngredients(ArrayList<Ingredient> ingredients) {
             StockManagement.ingredients = ingredients;
         }
 
-        public void restockIngredient(Ingredient ingredient) {
+        public static void restockIngredient(Ingredient ingredient) {
             int restockThreshold = ingredient.getRestockThreshold().intValue();
             int restockAmount = ingredient.getRestockAmount().intValue();
+            int quantity = ingredientsStock.get(ingredient).intValue();
 
-            restockThreshold += restockAmount;
-
-            ingredient.setRestockThreshold(restockThreshold);
+            if(quantity <= restockThreshold) {
+                ingredientsStock.replace(ingredient,quantity+=restockAmount);
+            }
         }
 
-        public void restockDish(Dish dish) {
+        public static void restockDish(Dish dish) {
             int restockThreshold = dish.getRestockThreshold().intValue();
+            int quantity = dishesStock.get(dish).intValue();
             int restockAmount = dish.getRestockAmount().intValue();
 
-            restockThreshold += restockAmount;
-
-            dish.setRestockThreshold(restockThreshold);
+            if(quantity <= restockThreshold) {
+                dishesStock.replace(dish,quantity+=restockAmount);
+            }
         }
 
         private static void dishIngredientFinder(String itemName, String itemQuantity) {
@@ -556,29 +555,6 @@ public class Server implements ServerInterface {
         }
     }
 
-        /*List of ingredients currently in system
-        List of dishes currently in system
-        Method to track current ingredients
-        Method to track current dishes
-        Method to restock ingredients
-        Method to build dish
-        Method to restock dishes.
-         */
-
-
-    /*
-            Take a file input
-            File Reader
-            If no file throw no file exception
-            else
-
-            Read the text
-            Read Text Line By Line
-            split line into respective model and value
-            Parse each line with model
-            Input the parsed data
-            Create the models using parsed data
-    */
     class Configuration {
         private Scanner sc;
         private Matcher matcher;
