@@ -51,7 +51,7 @@ public class Postcode extends Model {
 		this.latLong = new HashMap<String,Double>();
 		latLong.put("lat", 0d);
 		latLong.put("lon", 0d);
-		this.distance = new Integer(0);
+		this.distance = Integer.valueOf(0);
 	}
 	
 }

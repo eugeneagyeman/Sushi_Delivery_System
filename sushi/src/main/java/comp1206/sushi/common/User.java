@@ -10,10 +10,8 @@ public class User extends Model {
 	private String password;
 	private String address;
 	private Postcode postcode;
-
 	private Map<Dish,Number> basket;
-
-	private ArrayList<Order> orders;
+	private final ArrayList<Order> orders;
 
 
 	public User(String username, String password, String address, Postcode postcode) {

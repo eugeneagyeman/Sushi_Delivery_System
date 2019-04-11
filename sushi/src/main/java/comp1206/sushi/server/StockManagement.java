@@ -3,143 +3,183 @@ package comp1206.sushi.server;
 import comp1206.sushi.common.Dish;
 import comp1206.sushi.common.Ingredient;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static java.lang.Integer.valueOf;
 
 public class StockManagement {
-        private static ArrayList<Dish> dishes;
-        private static ArrayList<Ingredient> ingredients;
+    private final static Lock dishesLock = new ReentrantLock(true);
+    private final static Lock ingredientsLock = new ReentrantLock(true);
+    private static Map<Ingredient, Number> ingredientsStock = new ConcurrentHashMap<>();
+    private static Map<Dish, Number> getDishesStock = new ConcurrentHashMap<>();
+    static boolean restockIngredientsEnabled;
+    static boolean restockDishesEnabled = true;
 
-        private static Map<Ingredient, Number> ingredientsStock = new HashMap<>();
-        private static Map<Dish, Number> dishesStock = new HashMap<>();
+    private static List<Dish> dishes;
+    private static List<Ingredient> ingredients;
 
-        public static Map<Ingredient, Number> getIngredientsStock() {
-            //ingredientsTracker();
+    public static Map<Ingredient, Number> getIngredientsStock() {
+        ingredientsLock.tryLock();
+        //System.out.println("getIngredientsStock() Thread Locked by: "+dishesLock.toString()+"\n");
+
+        try {
             return ingredientsStock;
+        } finally {
+            ingredientsLock.unlock();
+            //System.out.println("getIngredientsStock() Thread unlocked by: "+dishesLock.toString()+"\n");
 
         }
+    }
 
 
-        public static Map<Dish, Number> getDishesStock() {
-            //dishesTracker();
-            return dishesStock;
+    public static Map<Dish, Number> getDishesStock() {
+        dishesLock.lock();
+        //System.out.println("getDishesStock() Thread Locked by: "+dishesLock.toString()+"\n");
+        try {
+            return getDishesStock;
+        } finally {
+            dishesLock.unlock();
+            //System.out.println("getDishesStock() Thread unlocked by: "+dishesLock.toString()+"\n");
         }
+    }
 
-        public static void ingredientsTracker() {
+    private static void ingredientsTracker() {
 
-            for (Ingredient existingIngredient : getIngredients()) {
-                System.out.println("Ingredient: " + existingIngredient.getName()
-                        + " Quantity:" + ingredientsStock.get(existingIngredient) );
+        for (Ingredient existingIngredient : getIngredients()) {
+            System.out.println("Ingredient: " + existingIngredient.getName()
+                    + " Quantity:" + ingredientsStock.get(existingIngredient));
+        }
+    }
+
+    private static void dishesTracker() {
+
+        for (Dish existingDish : getDishes()) {
+            System.out.println("Dish: " + existingDish.getName()
+                    + " Quantity: " + getDishesStock.get(existingDish));
+        }
+    }
+
+    public static List<Dish> getDishes() {
+        Set<Dish> dishesSet;
+        dishesLock.tryLock();
+        try {
+            dishesSet = getDishesStock.keySet();
+        } finally {
+            dishesLock.unlock();
+        }
+        dishes = Collections.synchronizedList(new ArrayList<Dish>(getDishesStock.keySet()));
+        return dishes;
+    }
+
+    public static Dish getDish(String name) {
+        for (Dish dishes : getDishes()) {
+            if (dishes.getName().equals(name)) {
+                return dishes;
             }
         }
+        return null;
+    }
 
-        public static void dishesTracker() {
-
-            for (Dish existingDish : getDishes()) {
-                System.out.println("Dish: " + existingDish.getName()
-                        + " Quantity: " + dishesStock.get(existingDish));
-            }
+    public static List<Ingredient> getIngredients() {
+        Set<Ingredient> ingredientsSet;
+        synchronized (StockManagement.class) {
+            ingredientsSet = ingredientsStock.keySet();
         }
 
-        public static ArrayList<Dish> getDishes() {
-            dishes = new ArrayList<Dish>(dishesStock.keySet());
-            return dishes;
-        }
+        ingredients = Collections.synchronizedList(new ArrayList<Ingredient>(ingredientsSet));
+        return ingredients;
+    }
 
-        public static Dish getDish(String name) {
-            for (Dish dishes : getDishes()) {
-                if (dishes.getName().equals(name)) {
-                    return dishes;
-                }
-            }
-            return null;
-        }
-
-        public static void build(Dish dish) {
-            //check stock level of dishes
-            //done using value of quantity.
-            //if there are enough ingredients
-            //checked using recipe against ingredients map.
-            //check all ingredients in recipe are in the system
-            //check quantity is below or equal to current quantity
-            //if so then deduct recipe amount from quantity amount.
-            //if not then do other dishes, or if not then wait
-            //build dish and update key
-
-            int dishQuantity = dishesStock.get(dish).intValue();
-            Map<Ingredient,Number> dishrecipe = dish.getRecipe();
-
-            boolean enoughIngredients = true;
-            for (Map.Entry<Ingredient, Number> entry : dishrecipe.entrySet()) {
-                Ingredient currentIngredient = entry.getKey();
-                Number recipeQuantity = entry.getValue();
-
-                int currentIngredientAmount = ingredientsStock.get(currentIngredient).intValue();
-
-                System.out.println("Ingredient: " + currentIngredient.getName() + "\tRecipe: " + dish.getName()
-                        + "\tRecipe Quantity: " + recipeQuantity + "\t"
-                        + "\t Currently in Stock:" + currentIngredientAmount);
-
-                if (recipeQuantity.intValue() >= currentIngredientAmount) enoughIngredients = false;
-            }
-
-            if(enoughIngredients) {
-                dishrecipe.forEach((key,value) -> {
-                    ingredientsStock.replace(key,ingredientsStock.get(key).intValue()-value.intValue());
-                });
-                dishesStock.replace(dish,dishQuantity+1);
-            } else {
-                for(Ingredient ingredient: dishrecipe.keySet())
-                restockIngredient(ingredient);
-            }
-
-
-        }
-
-        public static List<Ingredient> getIngredients() {
-            ingredients = new ArrayList<Ingredient>(ingredientsStock.keySet());
-            return ingredients;
-        }
-
-        public static void setIngredients(ArrayList<Ingredient> ingredients) {
+    public static void setIngredients(ArrayList<Ingredient> ingredients) {
+        ingredientsLock.tryLock();
+        try {
             StockManagement.ingredients = ingredients;
-        }
 
-        public static void restockIngredient(Ingredient ingredient) {
-            int restockThreshold = ingredient.getRestockThreshold().intValue();
-            int restockAmount = ingredient.getRestockAmount().intValue();
+        } finally {
+            ingredientsLock.unlock();
+        }
+    }
+
+    public static void restockIngredient(Ingredient ingredient) {
+        int restockThreshold = ingredient.getRestockThreshold().intValue();
+        int restockAmount = ingredient.getRestockAmount().intValue();
+
+        ingredientsLock.lock();
+        try {
             int quantity = ingredientsStock.get(ingredient).intValue();
 
-            if(quantity < restockThreshold) {
-                ingredientsStock.replace(ingredient,quantity+=restockAmount);
+            if (quantity < restockThreshold) {
+                ingredientsStock.replace(ingredient, quantity + restockAmount);
+            }
+        } finally {
+            ingredientsLock.unlock();
+        }
+
+    }
+
+    static void dishIngredientFinder(String itemName, String itemQuantity) {
+        for (Dish dish : StockManagement.getDishes()) {
+            if (dish.getName().equals(itemName)) {
+                StockManagement.getDishesStock().replace(dish, valueOf(itemQuantity));
             }
         }
 
-        public static void restockDish(Dish dish) {
-            int restockThreshold = dish.getRestockThreshold().intValue();
-            int quantity = dishesStock.get(dish).intValue();
-            int restockAmount = dish.getRestockAmount().intValue();
-
-            if(quantity <= restockThreshold) {
-                dishesStock.replace(dish,quantity+=restockAmount);
-            }
-        }
-
-        static void dishIngredientFinder(String itemName, String itemQuantity) {
-            for (Dish dish : StockManagement.getDishes()) {
-                if (dish.getName().equals(itemName)) {
-                    StockManagement.getDishesStock().replace(dish,valueOf(itemQuantity));
-                }
-            }
-
-            for (Ingredient ingredient : StockManagement.getIngredients()) {
-                if (ingredient.getName().equals(itemName)) {
-                    StockManagement.getIngredientsStock().replace(ingredient,valueOf(itemQuantity));
-                }
+        for (Ingredient ingredient : StockManagement.getIngredients()) {
+            if (ingredient.getName().equals(itemName)) {
+                StockManagement.getIngredientsStock().replace(ingredient, valueOf(itemQuantity));
             }
         }
     }
+
+    public static boolean isRestockIngredientsEnabled() {
+        return restockIngredientsEnabled;
+    }
+
+    public static void setRestockIngredientsEnabled(boolean restockIngredientsEnabled) {
+        StockManagement.restockIngredientsEnabled = restockIngredientsEnabled;
+    }
+
+    public static boolean isRestockDishesEnabled() {
+        return restockDishesEnabled;
+    }
+
+    public static void setRestockDishesEnabled(boolean restockDishesEnabled) {
+        StockManagement.restockDishesEnabled = restockDishesEnabled;
+    }
+
+
+}
+
+class StockChecker extends StockManagement implements Runnable {
+    private BlockingQueue<Dish> queue;
+
+    StockChecker(BlockingQueue<Dish> queue) {
+        this.queue = queue;
+    }
+
+    @Override
+    public void run() {
+        try {
+            while (isRestockDishesEnabled()) {
+                for (Dish dish : getDishesStock().keySet()) {
+                    int quantity = getDishesStock().get(dish).intValue();
+                    int restockThreshold = dish.getRestockThreshold().intValue();
+
+                    if (quantity <= restockThreshold) {
+                        System.out.println("Putting " + dish.getName() + " in the queue");
+                        queue.put(dish);
+                        Thread.sleep(1000);
+                    }
+
+
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}

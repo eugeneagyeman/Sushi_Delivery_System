@@ -8,6 +8,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -16,81 +18,50 @@ import static java.lang.Integer.valueOf;
 public class Server implements ServerInterface {
 
     private static final Logger logger = LogManager.getLogger("Server");
-    public static ArrayList<Order> orders = new ArrayList<Order>();
-    public static ArrayList<User> users = new ArrayList<User>();
-    public static ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
-    public static Restaurant restaurant;
-    public static ArrayList<Drone> drones = new ArrayList<Drone>();
-    public static ArrayList<Staff> staff = new ArrayList<Staff>();
-    public static ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
-    private static ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
+    private static final ArrayList<Order> orders = new ArrayList<Order>();
+    private static final ArrayList<User> users = new ArrayList<User>();
+    private static final ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
+    private static Restaurant restaurant;
+    private static final ArrayList<Drone> drones = new ArrayList<Drone>();
+    private static final ArrayList<Staff> staff = new ArrayList<Staff>();
+    private static final ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
+    private static final ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
 
     public Server() {
         logger.info("Starting up server...");
         loadConfiguration("Configuration.txt");
-
-        Threading();
-
-
-        /*Postcode restaurantPostcode = new Postcode("SO17 1BJ");
-        restaurant = new Restaurant("Mock Restaurant", restaurantPostcode);
-
-        Postcode postcode1 = addPostcode("SO17 1TJ");
-        Postcode postcode2 = addPostcode("SO17 1BX");
-        Postcode postcode3 = addPostcode("SO17 2NJ");
-        Postcode postcode4 = addPostcode("SO17 1TW");
-        Postcode postcode5 = addPostcode("SO17 2LB");
-
-        Supplier supplier1 = addSupplier("Supplier 1", postcode1);
-        Supplier supplier2 = addSupplier("Supplier 2", postcode2);
-        Supplier supplier3 = addSupplier("Supplier 3", postcode3);
-
-        Ingredient ingredient1 = addIngredient("Ingredient 1", "grams", supplier1, 1, 5, 1);
-        Ingredient ingredient2 = addIngredient("Ingredient 2", "grams", supplier2, 1, 5, 1);
-        Ingredient ingredient3 = addIngredient("Ingredient 3", "grams", supplier3, 1, 5, 1);
-
-        Dish dish1 = addDish("Dish 1", "Dish 1", 1, 1, 10);
-        Dish dish2 = addDish("Dish 2", "Dish 2", 2, 1, 10);
-        Dish dish3 = addDish("Dish 3", "Dish 3", 3, 1, 10);
-
-        orders.add(new Order());
-
-        addIngredientToDish(dish1, ingredient1, 1);
-        addIngredientToDish(dish1, ingredient2, 2);
-        addIngredientToDish(dish2, ingredient2, 3);
-        addIngredientToDish(dish2, ingredient3, 1);
-        addIngredientToDish(dish3, ingredient1, 2);
-        addIngredientToDish(dish3, ingredient3, 1);
-
-
-
-        addDrone(1);
-        addDrone(2);
-        addDrone(3);*/
+        init();
     }
 
-    private void Threading() {
-        Staff test1 = addStaff("Staff 1");
-        Staff test2 = addStaff("Staff 2");
-        Staff test3 =addStaff("Staff 3");
-        Thread testThread1 = new Thread(test1);
-        Thread testThread2 = new Thread(test2);
-        Thread testThread3 =new Thread(test3);
+    private void init() {
+        BlockingQueue<Dish> serverQueue = new LinkedBlockingQueue<>();
+        (new Thread(new StockChecker(serverQueue),"Stock Checker")).start();
+        for (Staff staff : getStaff()) {
 
-
-        testThread1.start();
-        testThread2.start();
-        testThread3.start();
-
-        try {
-            testThread2.join();
-            testThread3.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            staff.setDishBlockingQueue(serverQueue);
+            (new Thread(staff, staff.getName())).start();
         }
 
+
     }
 
+    //Restaurant Details
+    @Override
+    public String getRestaurantName() {
+        return restaurant.getName();
+    }
+
+    @Override
+    public Postcode getRestaurantPostcode() {
+        return restaurant.getLocation();
+    }
+
+    @Override
+    public Restaurant getRestaurant() {
+        return restaurant;
+    }
+
+    //Dishes
     @Override
     public List<Dish> getDishes() {
         return StockManagement.getDishes();
@@ -107,7 +78,7 @@ public class Server implements ServerInterface {
         }
 
         Dish newDish = new Dish(name, description, price, restockThreshold, restockAmount);
-        StockManagement.getDishesStock().putIfAbsent(newDish,0);
+        StockManagement.getDishesStock().put(newDish, 0);
 
         this.notifyUpdate();
         return newDish;
@@ -126,12 +97,57 @@ public class Server implements ServerInterface {
 
     @Override
     public void setRestockingIngredientsEnabled(boolean enabled) {
-
+        StockManagement.setRestockIngredientsEnabled(enabled);
     }
 
     @Override
     public void setRestockingDishesEnabled(boolean enabled) {
+        StockManagement.setRestockDishesEnabled(enabled);
+    }
 
+    @Override
+    public void addIngredientToDish(Dish dish, Ingredient ingredient, Number quantity) {
+        if (quantity == valueOf(0)) {
+            removeIngredientFromDish(dish, ingredient);
+        } else {
+            dish.getRecipe().put(ingredient, quantity);
+        }
+    }
+
+    @Override
+    public void removeIngredientFromDish(Dish dish, Ingredient ingredient) {
+        dish.getRecipe().remove(ingredient);
+        this.notifyUpdate();
+    }
+
+    @Override
+    public Map<Ingredient, Number> getRecipe(Dish dish) {
+        return dish.getRecipe();
+    }
+
+    @Override
+    public Number getRestockThreshold(Dish dish) {
+        return dish.getRestockThreshold();
+    }
+
+    @Override
+    public Number getRestockAmount(Dish dish) {
+        return dish.getRestockAmount();
+    }
+
+    @Override
+    public void setRecipe(Dish dish, Map<Ingredient, Number> recipe) {
+        for (Entry<Ingredient, Number> recipeItem : recipe.entrySet()) {
+            addIngredientToDish(dish, recipeItem.getKey(), recipeItem.getValue());
+        }
+        this.notifyUpdate();
+    }
+
+    @Override
+    public void setRestockLevels(Dish dish, Number restockThreshold, Number restockAmount) {
+        dish.setRestockThreshold(restockThreshold);
+        dish.setRestockAmount(restockAmount);
+        this.notifyUpdate();
     }
 
     @Override
@@ -141,6 +157,7 @@ public class Server implements ServerInterface {
         this.notifyUpdate();
     }
 
+    //Ingredients
     @Override
     public void setStock(Ingredient ingredient, Number stock) {
         Number oldValue = StockManagement.getDishesStock().get(ingredient);
@@ -164,7 +181,7 @@ public class Server implements ServerInterface {
             }
         }
         Ingredient mockIngredient = new Ingredient(name, unit, supplier, restockThreshold, restockAmount, weight);
-        StockManagement.getIngredientsStock().putIfAbsent(mockIngredient,0);
+        StockManagement.getIngredientsStock().put(mockIngredient, 0);
         this.notifyUpdate();
         return mockIngredient;
     }
@@ -175,6 +192,29 @@ public class Server implements ServerInterface {
         this.notifyUpdate();
     }
 
+    @Override
+    public Map<Ingredient, Number> getIngredientStockLevels() {
+        return StockManagement.getIngredientsStock();
+    }
+
+    @Override
+    public Number getRestockThreshold(Ingredient ingredient) {
+        return ingredient.getRestockThreshold();
+    }
+
+    @Override
+    public Number getRestockAmount(Ingredient ingredient) {
+        return ingredient.getRestockAmount();
+    }
+
+    @Override
+    public void setRestockLevels(Ingredient ingredient, Number restockThreshold, Number restockAmount) {
+        ingredient.setRestockThreshold(restockThreshold);
+        ingredient.setRestockAmount(restockAmount);
+        this.notifyUpdate();
+    }
+
+    //Suppliers
     @Override
     public List<Supplier> getSuppliers() {
         return suppliers;
@@ -195,6 +235,12 @@ public class Server implements ServerInterface {
     }
 
     @Override
+    public Number getSupplierDistance(Supplier supplier) {
+        return supplier.getDistance();
+    }
+
+    //Drones
+    @Override
     public List<Drone> getDrones() {
         return drones;
     }
@@ -213,6 +259,37 @@ public class Server implements ServerInterface {
     }
 
     @Override
+    public Number getDroneSpeed(Drone drone) {
+        return drone.getSpeed();
+    }
+
+    @Override
+    public String getDroneStatus(Drone drone) {
+        Random rand = new Random();
+        if (rand.nextBoolean()) {
+            return "Idle";
+        } else {
+            return "Flying";
+        }
+    }
+
+    @Override
+    public Postcode getDroneSource(Drone drone) {
+        return drone.getSource();
+    }
+
+    @Override
+    public Postcode getDroneDestination(Drone drone) {
+        return drone.getDestination();
+    }
+
+    @Override
+    public Number getDroneProgress(Drone drone) {
+        return drone.getProgress();
+    }
+
+    //Staff
+    @Override
     public List<Staff> getStaff() {
         return staff;
     }
@@ -230,13 +307,23 @@ public class Server implements ServerInterface {
         this.notifyUpdate();
     }
 
+    @Override
+    public String getStaffStatus(Staff staff) {
+        Random rand = new Random();
+        if (rand.nextBoolean()) {
+            return "Idle";
+        } else {
+            return "Working";
+        }
+    }
 
+    //Orders
     @Override
     public List<Order> getOrders() {
         return orders;
     }
 
-    public Order addOrder(String user) {
+    private Order addOrder(String user) {
         for (Order existingOrder : getOrders()) {
             if (existingOrder.getUser().getName().equals(user)) {
                 this.notifyUpdate();
@@ -263,45 +350,26 @@ public class Server implements ServerInterface {
     }
 
     @Override
-    public Map<Ingredient, Number> getIngredientStockLevels() {
-        return StockManagement.getIngredientsStock();
-    }
-
-    @Override
-    public Number getSupplierDistance(Supplier supplier) {
-        return supplier.getDistance();
-    }
-
-    @Override
-    public Number getDroneSpeed(Drone drone) {
-        return drone.getSpeed();
-    }
-
-    @Override
     public Number getOrderDistance(Order order) {
         return order.getDistance();
     }
 
     @Override
-    public void addIngredientToDish(Dish dish, Ingredient ingredient, Number quantity) {
-        if (quantity == valueOf(0)) {
-            removeIngredientFromDish(dish, ingredient);
+    public boolean isOrderComplete(Order order) {
+        return true;
+    }
+
+    @Override
+    public String getOrderStatus(Order order) {
+        Random rand = new Random();
+        if (rand.nextBoolean()) {
+            return "Complete";
         } else {
-            dish.getRecipe().put(ingredient, quantity);
+            return "Pending";
         }
     }
 
-    @Override
-    public void removeIngredientFromDish(Dish dish, Ingredient ingredient) {
-        dish.getRecipe().remove(ingredient);
-        this.notifyUpdate();
-    }
-
-    @Override
-    public Map<Ingredient, Number> getRecipe(Dish dish) {
-        return dish.getRecipe();
-    }
-
+    //Postcodes
     @Override
     public List<Postcode> getPostcodes() {
         return postcodes;
@@ -315,7 +383,7 @@ public class Server implements ServerInterface {
         for (Postcode existingPostcode : postcodes) {
             if (existingPostcode.getName().equals(code)) {
                 this.notifyUpdate();
-                System.out.println("Existing postcode");
+                //System.out.println("Existing postcode");
                 return existingPostcode;
             }
         }
@@ -337,6 +405,7 @@ public class Server implements ServerInterface {
         this.notifyUpdate();
     }
 
+    //Users
     @Override
     public List<User> getUsers() {
         return users;
@@ -348,6 +417,14 @@ public class Server implements ServerInterface {
         this.notifyUpdate();
     }
 
+    private User addUser(String name) {
+        for (User existingUsers : users) {
+            if (existingUsers.getName().equals(name)) return existingUsers;
+        }
+        return null;
+    }
+
+    //Configuration
     @Override
     public void loadConfiguration(String filename) {
         System.out.println("Loaded configuration: " + filename);
@@ -361,83 +438,6 @@ public class Server implements ServerInterface {
     }
 
     @Override
-    public void setRecipe(Dish dish, Map<Ingredient, Number> recipe) {
-        for (Entry<Ingredient, Number> recipeItem : recipe.entrySet()) {
-            addIngredientToDish(dish, recipeItem.getKey(), recipeItem.getValue());
-        }
-        this.notifyUpdate();
-    }
-
-    @Override
-    public boolean isOrderComplete(Order order) {
-        return true;
-    }
-
-    @Override
-    public String getOrderStatus(Order order) {
-        Random rand = new Random();
-        if (rand.nextBoolean()) {
-            return "Complete";
-        } else {
-            return "Pending";
-        }
-    }
-
-    @Override
-    public String getDroneStatus(Drone drone) {
-        Random rand = new Random();
-        if (rand.nextBoolean()) {
-            return "Idle";
-        } else {
-            return "Flying";
-        }
-    }
-
-    @Override
-    public String getStaffStatus(Staff staff) {
-        Random rand = new Random();
-        if (rand.nextBoolean()) {
-            return "Idle";
-        } else {
-            return "Working";
-        }
-    }
-
-    @Override
-    public void setRestockLevels(Dish dish, Number restockThreshold, Number restockAmount) {
-        dish.setRestockThreshold(restockThreshold);
-        dish.setRestockAmount(restockAmount);
-        this.notifyUpdate();
-    }
-
-    @Override
-    public void setRestockLevels(Ingredient ingredient, Number restockThreshold, Number restockAmount) {
-        ingredient.setRestockThreshold(restockThreshold);
-        ingredient.setRestockAmount(restockAmount);
-        this.notifyUpdate();
-    }
-
-    @Override
-    public Number getRestockThreshold(Dish dish) {
-        return dish.getRestockThreshold();
-    }
-
-    @Override
-    public Number getRestockAmount(Dish dish) {
-        return dish.getRestockAmount();
-    }
-
-    @Override
-    public Number getRestockThreshold(Ingredient ingredient) {
-        return ingredient.getRestockThreshold();
-    }
-
-    @Override
-    public Number getRestockAmount(Ingredient ingredient) {
-        return ingredient.getRestockAmount();
-    }
-
-    @Override
     public void addUpdateListener(UpdateListener listener) {
         listeners.add(listener);
     }
@@ -445,44 +445,6 @@ public class Server implements ServerInterface {
     @Override
     public void notifyUpdate() {
         listeners.forEach(listener -> listener.updated(new UpdateEvent()));
-    }
-
-    @Override
-    public Postcode getDroneSource(Drone drone) {
-        return drone.getSource();
-    }
-
-    @Override
-    public Postcode getDroneDestination(Drone drone) {
-        return drone.getDestination();
-    }
-
-    @Override
-    public Number getDroneProgress(Drone drone) {
-        return drone.getProgress();
-    }
-
-    @Override
-    public String getRestaurantName() {
-        return restaurant.getName();
-    }
-
-    @Override
-    public Postcode getRestaurantPostcode() {
-        return restaurant.getLocation();
-    }
-
-    @Override
-    public Restaurant getRestaurant() {
-        return restaurant;
-    }
-
-
-    public User addUser(String name) {
-        for (User existingUsers : users) {
-            if (existingUsers.getName().equals(name)) return existingUsers;
-        }
-        return null;
     }
 
 
@@ -546,17 +508,17 @@ public class Server implements ServerInterface {
             }
         }
 
-        void postcodeParse(String postcode) throws IOException {
+        void postcodeParse(String postcode) {
             Pattern postcodePattern = Pattern.compile("^POSTCODE:(.+)$", Pattern.MULTILINE);
             matcher = postcodePattern.matcher(postcode);
 
             while (matcher.find()) {
-                System.out.println("Postcode: " + matcher.group(1));
+                //System.out.println("Postcode: " + matcher.group(1));
                 addPostcode(matcher.group(1));
             }
         }
 
-        void restaurantParse(String restaurants) throws IOException {
+        void restaurantParse(String restaurants) {
             Pattern restaurantPattern = Pattern.compile("^RESTAURANT:(\\w+\\s*+\\w*+):(.+)$", Pattern.MULTILINE);
             matcher = restaurantPattern.matcher(restaurants);
             while (matcher.find()) {
@@ -567,7 +529,7 @@ public class Server implements ServerInterface {
             }
         }
 
-        void supplierParse(String supplier) throws IOException {
+        void supplierParse(String supplier) {
             Pattern supplierPattern = Pattern.compile("^SUPPLIER:(.+):(.+)$", Pattern.MULTILINE);
             matcher = supplierPattern.matcher(supplier);
 

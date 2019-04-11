@@ -24,7 +24,7 @@ USER:Admin:password:University Road:SO17 1BJ
 
 ORDER:Admin:5 * Sushi Roll,2 * Side Rice
 
-STOCK:Sushi Roll:10
+STOCK:Sushi Roll:00
 STOCK:Rice:300
 
 STAFF:Joshua

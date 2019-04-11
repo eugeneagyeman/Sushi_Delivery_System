@@ -3,14 +3,16 @@ package comp1206.sushi.common;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Dish extends Model {
+public final class Dish extends Model {
 
 	private String name;
 	private String description;
 	private Number price;
-	private Map <Ingredient,Number> recipe;
+	private volatile Map <Ingredient,Number> recipe;
 	private Number restockThreshold;
 	private Number restockAmount;
+
+
 
 	public Dish(String name, String description, Number price, Number restockThreshold, Number restockAmount) {
 		this.name = name;
@@ -21,53 +23,55 @@ public class Dish extends Model {
 		this.recipe = new HashMap<Ingredient,Number>();
 	}
 
-	public String getName() {
+	public synchronized String getName() {
 		return name;
 	}
 
-	public void setName(String name) {
+	public synchronized void setName(String name) {
 		this.name = name;
 	}
 
-	public String getDescription() {
+	public synchronized String getDescription() {
 		return description;
 	}
 
-	public void setDescription(String description) {
+	public synchronized void setDescription(String description) {
 		this.description = description;
 	}
 
-	public Number getPrice() {
+	public synchronized Number getPrice() {
 		return price;
 	}
 
-	public void setPrice(Number price) {
+	public synchronized void setPrice(Number price) {
 		this.price = price;
 	}
 
-	public Map <Ingredient,Number> getRecipe() {
+	public synchronized Map <Ingredient,Number> getRecipe() {
 		return recipe;
 	}
 
-	public void setRecipe(Map <Ingredient,Number> recipe) {
+	public synchronized void setRecipe(Map <Ingredient,Number> recipe) {
 		this.recipe = recipe;
 	}
 
-	public void setRestockThreshold(Number restockThreshold) {
+	public synchronized void setRestockThreshold(Number restockThreshold) {
 		this.restockThreshold = restockThreshold;
 	}
 	
-	public void setRestockAmount(Number restockAmount) {
+	public synchronized void setRestockAmount(Number restockAmount) {
 		this.restockAmount = restockAmount;
 	}
 
-	public Number getRestockThreshold() {
-		return this.restockThreshold;
+	public synchronized Number getRestockThreshold() {
+		return restockThreshold;
 	}
 
-	public Number getRestockAmount() {
+	public synchronized Number getRestockAmount() {
 		return this.restockAmount;
 	}
+
+
 
 
 }

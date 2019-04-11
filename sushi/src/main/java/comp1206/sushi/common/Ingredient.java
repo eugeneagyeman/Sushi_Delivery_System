@@ -21,51 +21,51 @@ public class Ingredient extends Model {
 		this.setWeight(weight);
 	}
 
-	public String getName() {
+	public synchronized String getName() {
 		return name;
 	}
 
-	public void setName(String name) {
+	public synchronized void setName(String name) {
 		this.name = name;
 	}
 
-	public String getUnit() {
+	public synchronized String getUnit() {
 		return unit;
 	}
 
-	public void setUnit(String unit) {
+	public synchronized void setUnit(String unit) {
 		this.unit = unit;
 	}
 
-	public Supplier getSupplier() {
+	public synchronized Supplier getSupplier() {
 		return supplier;
 	}
 
-	public void setSupplier(Supplier supplier) {
+	public synchronized void setSupplier(Supplier supplier) {
 		this.supplier = supplier;
 	}
 
-	public Number getRestockThreshold() {
+	public synchronized Number getRestockThreshold() {
 		return restockThreshold;
 	}
 
-	public void setRestockThreshold(Number restockThreshold) {
+	public synchronized void setRestockThreshold(Number restockThreshold) {
 		this.restockThreshold = restockThreshold;
 	}
 
-	public Number getRestockAmount() {
+	public synchronized Number getRestockAmount() {
 		return restockAmount;
 	}
 
-	public void setRestockAmount(Number restockAmount) {
+	public synchronized void setRestockAmount(Number restockAmount) {
 		this.restockAmount = restockAmount;
 	}
 
-	public Number getWeight() {
+	public synchronized Number getWeight() {
 		return weight;
 	}
 
-	public void setWeight(Number weight) {
+	public synchronized void setWeight(Number weight) {
 		this.weight = weight;
 	}
 }
