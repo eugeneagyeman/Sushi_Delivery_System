@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -37,15 +38,16 @@ public class Staff extends Model implements Runnable {
     //if so then deduct recipe amount from quantity amount.
     //if not then do other dishes, or if not then wait
     //build dish and update key
-    public void build(Dish dish) throws InterruptedException {
-
+    public synchronized void build(Dish dish) throws InterruptedException {
+        int rand = ThreadLocalRandom.current().nextInt(10000 - 5000) + 5000;
+        Thread.sleep(rand);
     }
 
     public String getName() {
         return name;
     }
 
-    public void setName(String name) {
+    public synchronized void setName(String name) {
         this.name = name;
     }
 
@@ -53,7 +55,7 @@ public class Staff extends Model implements Runnable {
         return fatigue;
     }
 
-    public void setFatigue(Number fatigue) {
+    public synchronized void setFatigue(Number fatigue) {
         this.fatigue = fatigue;
     }
 
@@ -66,7 +68,7 @@ public class Staff extends Model implements Runnable {
         this.status = status;
     }
 
-    public void setDishBlockingQueue(BlockingQueue<Dish> dishBlockingQueue) {
+    public synchronized void setDishBlockingQueue(BlockingQueue<Dish> dishBlockingQueue) {
         this.dishBlockingQueue = dishBlockingQueue;
     }
 
@@ -75,14 +77,15 @@ public class Staff extends Model implements Runnable {
 
         try {
             while (StockManagement.isRestockDishesEnabled()) {
-            while (dishBlockingQueue.peek() == null) {
-                this.setStatus("Waiting");
-                wait(3000);
-            }
-
-                System.out.println(Thread.currentThread().getName() + " is attempting to build: " + dishBlockingQueue.peek() + "\n");
-                this.setStatus("Building: " + dishBlockingQueue.peek());
-                build(dishBlockingQueue.take());
+                if (dishBlockingQueue.peek() == null) {
+                    this.setStatus("Waiting");
+                    wait(3000);
+                } else {
+                    Dish attemptedDish = dishBlockingQueue.take();
+                    System.out.println(Thread.currentThread().getName() + " is attempting to build: " + attemptedDish.getName() + "\n");
+                    this.setStatus("Building: " + attemptedDish.getName());
+                    build(attemptedDish);
+                }
             }
 
 
