@@ -2,12 +2,10 @@ package comp1206.sushi.common;
 
 import comp1206.sushi.server.StockManagement;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -39,54 +37,15 @@ public class Staff extends Model implements Runnable {
     //if so then deduct recipe amount from quantity amount.
     //if not then do other dishes, or if not then wait
     //build dish and update key
-    public synchronized void build(Dish dish) throws InterruptedException {
+    public void build(Dish dish) throws InterruptedException {
 
-
-        Map<Ingredient, Number> dishrecipe = dish.getRecipe();
-
-        boolean enoughIngredients = true;
-
-        Map<Ingredient, Number> ingredientsStock = StockManagement.getIngredientsStock();
-        for (Map.Entry<Ingredient, Number> entry : dishrecipe.entrySet()) {
-            Ingredient currentIngredient = entry.getKey();
-            Number recipeQuantity = entry.getValue();
-            int currentIngredientAmount = ingredientsStock.get(currentIngredient).intValue();
-
-            System.out.println("Ingredient: " + currentIngredient.getName() + "\tRecipe: " + dish.getName()
-                    + "\tRecipe Quantity: " + recipeQuantity + "\t"
-                    + "\t Currently in Stock:" + currentIngredientAmount);
-
-            if (recipeQuantity.intValue() >= currentIngredientAmount) {
-                enoughIngredients = false;
-            }
-        }
-
-        if (enoughIngredients) {
-            int randomBuildTime = ThreadLocalRandom.current().nextInt(60000 - 20000) + 20000;
-            Thread.sleep(randomBuildTime);
-
-            dishrecipe.forEach((key, value) -> {
-                ingredientsStock.replace(key, ingredientsStock.get(key).intValue() - value.intValue());
-            });
-
-            Map<Dish, Number> dishesStock = StockManagement.getDishesStock();
-            int dishQuantity = dishesStock.get(dish).intValue();
-            dishesStock.replace(dish, dishQuantity + 1);
-
-            System.out.println(Thread.currentThread().getName() + " has successfully created: " + dish.getName() + "\n");
-        } else {
-            System.out.println("There are not enough ingredients...\n");
-
-            for (Ingredient ingredient : dishrecipe.keySet())
-                StockManagement.restockIngredient(ingredient);
-        }
     }
 
     public String getName() {
         return name;
     }
 
-    public synchronized void setName(String name) {
+    public void setName(String name) {
         this.name = name;
     }
 
@@ -94,7 +53,7 @@ public class Staff extends Model implements Runnable {
         return fatigue;
     }
 
-    public synchronized void setFatigue(Number fatigue) {
+    public void setFatigue(Number fatigue) {
         this.fatigue = fatigue;
     }
 
@@ -107,24 +66,26 @@ public class Staff extends Model implements Runnable {
         this.status = status;
     }
 
-    public synchronized void setDishBlockingQueue(BlockingQueue<Dish> dishBlockingQueue) {
+    public void setDishBlockingQueue(BlockingQueue<Dish> dishBlockingQueue) {
         this.dishBlockingQueue = dishBlockingQueue;
     }
 
     @Override
     public synchronized void run() {
+
         try {
             while (StockManagement.isRestockDishesEnabled()) {
-                if (dishBlockingQueue.peek() == null) {
-                    this.setStatus("Waiting");
-                    wait(10000);
-                } else {
-                    Dish attemptedDish = dishBlockingQueue.take();
-                    System.out.println(Thread.currentThread().getName() + " is attempting to build: " + attemptedDish.getName() + "\n");
-                    this.setStatus("Building: " + attemptedDish.getName());
-                    build(attemptedDish);
-                }
+            while (dishBlockingQueue.peek() == null) {
+                this.setStatus("Waiting");
+                wait(3000);
             }
+
+                System.out.println(Thread.currentThread().getName() + " is attempting to build: " + dishBlockingQueue.peek() + "\n");
+                this.setStatus("Building: " + dishBlockingQueue.peek());
+                build(dishBlockingQueue.take());
+            }
+
+
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
