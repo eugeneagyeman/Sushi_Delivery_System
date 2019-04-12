@@ -10,6 +10,8 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,20 +28,27 @@ public class Server implements ServerInterface {
     private static final ArrayList<Staff> staff = new ArrayList<Staff>();
     private static final ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
     private static final ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
+    private Lock taskLock = new ReentrantLock();
 
     public Server() {
         logger.info("Starting up server...");
         loadConfiguration("Configuration.txt");
-        init();
+        try {
+            init();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
-    private void init() {
-        BlockingQueue<Dish> serverQueue = new LinkedBlockingQueue<>();
+    private void init() throws InterruptedException {
+        BlockingQueue<Dish> serverQueue = new LinkedBlockingQueue<>(10);
         (new Thread(new StockChecker(serverQueue),"Stock Checker")).start();
-        for (Staff staff : getStaff()) {
+        synchronized (taskLock) {
+            for (Staff staff : getStaff()) {
+                staff.setDishBlockingQueue(serverQueue);
+                (new Thread(staff, staff.getName())).start();
+            }
 
-            staff.setDishBlockingQueue(serverQueue);
-            (new Thread(staff, staff.getName())).start();
         }
 
 

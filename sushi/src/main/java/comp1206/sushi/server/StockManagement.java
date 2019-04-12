@@ -155,14 +155,15 @@ public class StockManagement {
 }
 
 class StockChecker extends StockManagement implements Runnable {
-    private BlockingQueue<Dish> queue;
+    private final BlockingQueue<Dish> queue;
+
 
     StockChecker(BlockingQueue<Dish> queue) {
         this.queue = queue;
     }
 
     @Override
-    public void run() {
+    public synchronized void run() {
         try {
             while (isRestockDishesEnabled()) {
                 for (Dish dish : getDishesStock().keySet()) {
@@ -171,12 +172,19 @@ class StockChecker extends StockManagement implements Runnable {
 
                     if (quantity <= restockThreshold) {
                         System.out.println("Putting " + dish.getName() + " in the queue");
+
                         queue.put(dish);
-                        Thread.sleep(1000);
+                        Thread.sleep(5000);
+                        notifyAll();
+
+
+
                     }
 
 
                 }
+
+
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
