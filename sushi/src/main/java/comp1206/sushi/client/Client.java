@@ -1,5 +1,7 @@
 package comp1206.sushi.client;
 
+import java.io.*;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -10,35 +12,33 @@ import org.apache.logging.log4j.Logger;
 
 public class Client implements ClientInterface {
 
-    private static final Logger logger = LogManager.getLogger("Client");
+	private static final Logger logger = LogManager.getLogger("Client");
 
-    public Restaurant restaurant;
+	public Restaurant restaurant;
 	public static ArrayList<User> users = new ArrayList<User>();
 	public static ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
 	public static ArrayList<Dish> dishes = new ArrayList<Dish>();
 	private ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
-
-
-
+	private ClientCommunication test;
 
 
 	public Client() {
-        logger.info("Starting up client...");
+		logger.info("Starting up client...");
 
-        Postcode restaurantPostcode = new Postcode("SO17 1BJ");
-        restaurant = new Restaurant("Mock Restaurant", restaurantPostcode);
+		Postcode restaurantPostcode = new Postcode("SO17 1BJ");
+		restaurant = new Restaurant("Mock Restaurant", restaurantPostcode);
 
-        Postcode postcode1 = new Postcode("SO17 1TJ");
-        Postcode postcode2 = new Postcode("SO17 1BX");
-        Postcode postcode3 = new Postcode("SO17 2NJ");
-        Postcode postcode4 = new Postcode("SO17 1TW");
-        Postcode postcode5 = new Postcode("SO17 2LB");
+		Postcode postcode1 = new Postcode("SO17 1TJ");
+		Postcode postcode2 = new Postcode("SO17 1BX");
+		Postcode postcode3 = new Postcode("SO17 2NJ");
+		Postcode postcode4 = new Postcode("SO17 1TW");
+		Postcode postcode5 = new Postcode("SO17 2LB");
 
-        postcodes.add(postcode1);
-        postcodes.add(postcode2);
-        postcodes.add(postcode3);
-        postcodes.add(postcode4);
-        postcodes.add(postcode5);
+		postcodes.add(postcode1);
+		postcodes.add(postcode2);
+		postcodes.add(postcode3);
+		postcodes.add(postcode4);
+		postcodes.add(postcode5);
 
 		Dish dish1 = new Dish("Dish 1", "Dish 1", 1, 1, 10);
 		Dish dish2 = new Dish("Dish 2", "Dish 2", 2, 1, 10);
@@ -47,6 +47,15 @@ public class Client implements ClientInterface {
 		dishes.add(dish1);
 		dishes.add(dish2);
 		dishes.add(dish3);
+
+		try {
+			test = new ClientCommunication(this);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+
 
         /*
         Supplier supplier1 = addSupplier("Supplier 1", postcode1);
@@ -77,12 +86,12 @@ public class Client implements ClientInterface {
         addDrone(3);*/
 
 	}
-	
+
 	@Override
 	public Restaurant getRestaurant() {
 		return this.restaurant;
 	}
-	
+
 	@Override
 	public String getRestaurantName() {
 		return this.restaurant.getName();
@@ -92,10 +101,10 @@ public class Client implements ClientInterface {
 	public Postcode getRestaurantPostcode() {
 		return this.restaurant.getLocation();
 	}
-	
+
 	@Override
 	public User register(String username, String password, String address, Postcode postcode) {
-		User mockUser = new User(username,password,address,postcode);
+		User mockUser = new User(username, password, address, postcode);
 		//add to server
 		users.add(mockUser);
 		//update ui
@@ -104,8 +113,8 @@ public class Client implements ClientInterface {
 
 	@Override
 	public User login(String username, String password) {
-		for(User user: users) {
-			if(user.getName().equals(username) && user.getPassword().equals(password)) return user;
+		for (User user : users) {
+			if (user.getName().equals(username) && user.getPassword().equals(password)) return user;
 		}
 		return null;
 	}
@@ -117,6 +126,7 @@ public class Client implements ClientInterface {
 
 	@Override
 	public List<Dish> getDishes() {
+
 		return dishes;
 	}
 
@@ -141,7 +151,7 @@ public class Client implements ClientInterface {
 	public Number getBasketCost(User user) {
 		Double sum = Double.valueOf(0);
 
-		for(Dish dishInBasket: user.getBasket().keySet()) {
+		for (Dish dishInBasket : user.getBasket().keySet()) {
 			Number multiply = dishInBasket.getPrice().doubleValue() * user.getBasket().get(dishInBasket).doubleValue();
 			sum += multiply.doubleValue();
 		}
@@ -150,7 +160,7 @@ public class Client implements ClientInterface {
 
 	@Override
 	public void addDishToBasket(User user, Dish dish, Number quantity) {
-		user.getBasket().put(dish,quantity);
+		user.getBasket().put(dish, quantity);
 
 	}
 
@@ -171,7 +181,7 @@ public class Client implements ClientInterface {
 		Order checkoutOrder = new Order(user);
 
 		//add basket and cost to order
-		checkoutOrder.addContents(user.getBasket());
+		checkoutOrder.setContents(user.getBasket());
 		checkoutOrder.setCost(getBasketCost(user));
 
 		//add to list of checkouts
@@ -224,7 +234,7 @@ public class Client implements ClientInterface {
 
 	@Override
 	public void addUpdateListener(UpdateListener listener) {
-    	this.listeners.add(listener);
+		this.listeners.add(listener);
 	}
 
 	@Override
@@ -236,4 +246,56 @@ public class Client implements ClientInterface {
 //		this.listeners.forEach(listener -> listener.updated(updateEvent));
 //	}
 
+	public static class ClientCommunication implements Communication {
+		private Socket clientSocket;
+		private ObjectInputStream input;
+		private ObjectOutputStream output;
+		private BufferedReader bufferedReader;
+		private Client client;
+
+
+
+		ClientCommunication(Client client) throws Exception{
+			this.client = client;
+			this.clientSocket = new Socket("127.0.0.1",5000);
+			this.input = new ObjectInputStream(clientSocket.getInputStream());
+			this.output = new ObjectOutputStream(clientSocket.getOutputStream());
+			this.bufferedReader =new BufferedReader(new InputStreamReader(System.in));
+		}
+
+		@Override
+		public void sendMessage() throws IOException {
+
+
+		}
+
+		@Override
+		public void receiveMessage() throws IOException {
+
+
+		}
+
+		@Override
+		public void sendMessage(Object object) {
+
+		}
+
+		@Override
+		public void sendCmdMessage() {
+
+		}
+
+		@Override
+		public void receiveCmdMessage() {
+
+		}
+
+		public Client getClient() {
+			return client;
+		}
+
+		public void setClient(Client client) {
+			this.client = client;
+		}
+	}
 }

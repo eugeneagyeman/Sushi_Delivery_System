@@ -57,7 +57,7 @@ public class Order extends Model {
 		this.status = status;
 	}
 
-	public void addContents(Map<Dish, Number> basket){
+	public void setContents(Map<Dish, Number> basket){
 		this.contents = basket;
 	}
 
@@ -71,6 +71,7 @@ public class Order extends Model {
 	}
 
 
-
-
+	public Map<Dish, Number> getContents() {
+		return contents;
+	}
 }

@@ -4,8 +4,9 @@ import comp1206.sushi.common.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
@@ -29,20 +30,30 @@ public class Server implements ServerInterface {
     private static final ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
     private static final ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
     private Lock taskLock = new ReentrantLock();
+    ServerCommunication test;
+
 
     public Server() {
         logger.info("Starting up server...");
         loadConfiguration("Configuration.txt");
-        try {
+        /*try {
             init();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }*/
+
+        try {
+            test = new ServerCommunication();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+
+
     }
 
     private void init() throws InterruptedException {
         BlockingQueue<Dish> serverQueue = new LinkedBlockingQueue<>(10);
-        (new Thread(new StockChecker(serverQueue),"Stock Checker")).start();
+        (new Thread(new StockChecker(serverQueue), "Stock Checker")).start();
         synchronized (taskLock) {
             for (Staff staff : getStaff()) {
                 staff.setDishBlockingQueue(serverQueue);
@@ -73,6 +84,12 @@ public class Server implements ServerInterface {
     //Dishes
     @Override
     public List<Dish> getDishes() {
+
+        try {
+            test.sendMessage(StockManagement.getDishes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return StockManagement.getDishes();
     }
 
@@ -696,7 +713,7 @@ public class Server implements ServerInterface {
 
                 }
                 parsedUser.setBasket(orderbasket);
-                parsedOrder.addContents(parsedUser.getBasket());
+                parsedOrder.setContents(parsedUser.getBasket());
                 parsedUser.getOrders().add(parsedOrder);
             }
         }
@@ -718,6 +735,58 @@ public class Server implements ServerInterface {
         }
 
     }
+
+    public static class ServerCommunication implements Communication {
+        private final Socket socket;
+        private final ServerSocket serverSocket;
+        private BufferedReader bufferedReader;
+
+        private ObjectOutputStream output;
+        private ObjectInputStream input;
+
+
+        ServerCommunication() throws Exception {
+            serverSocket = new ServerSocket(5000);
+            System.out.println("Awaiting connection...");
+
+            this.socket =serverSocket.accept();
+            System.out.println("Connection from "+socket.toString());
+
+            this.input = new ObjectInputStream(socket.getInputStream());
+            this.output = new ObjectOutputStream(socket.getOutputStream());
+
+            //this.bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+
+        }
+
+        @Override
+        public void sendMessage() throws IOException, ClassNotFoundException {
+
+
+
+
+        }
+
+        @Override
+        public void receiveMessage() throws IOException, ClassNotFoundException {
+
+        }
+
+        @Override
+        public void sendMessage(Object object) throws IOException {
+            output.writeObject(object);
+            System.out.println(object.toString());
+
+        }
+
+        @Override
+        public void sendCmdMessage() {
+
+        }
+
+        @Override
+        public void receiveCmdMessage() {
+
+        }
+    }
 }
-
-
