@@ -170,7 +170,7 @@ class StockChecker extends StockManagement implements Runnable {
                     int quantity = getDishesStock().get(dish).intValue();
                     int restockThreshold = dish.getRestockThreshold().intValue();
 
-                    if (quantity <= 10) {
+                    if (quantity <= restockThreshold) {
                         System.out.println("Putting " + dish.getName() + " in the queue");
 
                         queue.put(dish);
@@ -181,7 +181,7 @@ class StockChecker extends StockManagement implements Runnable {
 
 
                 }
-                Thread.sleep(30000);
+                Thread.sleep(40000);
 
 
 

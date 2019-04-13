@@ -39,8 +39,44 @@ public class Staff extends Model implements Runnable {
     //if not then do other dishes, or if not then wait
     //build dish and update key
     public synchronized void build(Dish dish) throws InterruptedException {
-        int rand = ThreadLocalRandom.current().nextInt(10000 - 5000) + 5000;
-        Thread.sleep(rand);
+        Map<Ingredient, Number> dishrecipe = dish.getRecipe();
+
+        boolean enoughIngredients = true;
+
+        Map<Ingredient, Number> ingredientsStock = StockManagement.getIngredientsStock();
+        for (Map.Entry<Ingredient, Number> entry : dishrecipe.entrySet()) {
+            Ingredient currentIngredient = entry.getKey();
+            Number recipeQuantity = entry.getValue();
+            int currentIngredientAmount = ingredientsStock.get(currentIngredient).intValue();
+
+            System.out.println("Ingredient: " + currentIngredient.getName() + "\tRecipe: " + dish.getName()
+                    + "\tRecipe Quantity: " + recipeQuantity + "\t"
+                    + "\t Currently in Stock:" + currentIngredientAmount);
+
+            if (recipeQuantity.intValue() >= currentIngredientAmount) {
+                enoughIngredients = false;
+            }
+        }
+
+        if (enoughIngredients) {
+            int randomBuildTime = ThreadLocalRandom.current().nextInt(60000 - 20000) + 20000;
+            Thread.sleep(randomBuildTime);
+
+            dishrecipe.forEach((key, value) -> {
+                ingredientsStock.replace(key, ingredientsStock.get(key).intValue() - value.intValue());
+            });
+
+            Map<Dish, Number> dishesStock = StockManagement.getDishesStock();
+            int dishQuantity = dishesStock.get(dish).intValue();
+            dishesStock.replace(dish, dishQuantity + 1);
+
+            System.out.println(Thread.currentThread().getName() + " has successfully created: " + dish.getName() + "\n");
+        } else {
+            System.out.println("There are not enough ingredients...\n");
+
+            for (Ingredient ingredient : dishrecipe.keySet())
+                StockManagement.restockIngredient(ingredient);
+        }
     }
 
     public String getName() {
@@ -78,7 +114,7 @@ public class Staff extends Model implements Runnable {
         try {
             while (StockManagement.isRestockDishesEnabled()) {
                 if (dishBlockingQueue.peek() == null) {
-                    this.setStatus("Waiting");
+                    this.setStatus("Idle");
                     wait(3000);
                 } else {
                     Dish attemptedDish = dishBlockingQueue.take();
