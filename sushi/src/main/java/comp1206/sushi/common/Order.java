@@ -1,12 +1,13 @@
 package comp1206.sushi.common;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Order extends Model {
-
+public class Order extends Model implements Serializable {
+	public static final long serialVersionUID = -1527491017931721943L;
 	private String status;
 	private User user;
 	private Map<Dish,Number> contents;

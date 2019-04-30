@@ -1,11 +1,13 @@
 package comp1206.sushi.common;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class User extends Model {
-	
+public class User extends Model implements Serializable {
+	public static final long serialVersionUID = 2348722584363340903L;
+
 	private String name;
 	private String password;
 	private String address;

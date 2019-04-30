@@ -1,7 +1,9 @@
 package comp1206.sushi.common;
 
-public class Restaurant {
+import java.io.Serializable;
 
+public class Restaurant implements Serializable {
+	public static final long serialVersionUID = -5962361060877696289L;
 	private String name;
 	private Postcode location;
 

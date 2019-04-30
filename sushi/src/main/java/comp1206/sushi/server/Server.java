@@ -1,8 +1,11 @@
 package comp1206.sushi.server;
 
+import com.esotericsoftware.kryo.Kryo;
+import comp1206.sushi.Communication.ServerCommunication;
 import comp1206.sushi.common.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -30,30 +33,27 @@ public class Server implements ServerInterface {
     private static final ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
     private static final ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
     private Lock taskLock = new ReentrantLock();
-    ServerCommunication test;
+    private ServerSocket serverSocket;
+    private StockManagement stockManagement;
 
 
     public Server() {
         logger.info("Starting up server...");
         loadConfiguration("Configuration.txt");
-        /*try {
-            init();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }*/
-
+        init();
         try {
-            test = new ServerCommunication();
-        } catch (Exception e) {
+            new ServerCommunication(this).start();
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
-
     }
 
-    private void init() throws InterruptedException {
+    private void init() {
+        stockManagement = new StockManagement();
         BlockingQueue<Dish> serverQueue = new LinkedBlockingQueue<>(10);
-        (new Thread(new StockChecker(serverQueue), "Stock Checker")).start();
+        new Thread(new StockChecker(serverQueue), "Stock Checker").start();
+
         synchronized (taskLock) {
             for (Staff staff : getStaff()) {
                 staff.setDishBlockingQueue(serverQueue);
@@ -61,8 +61,6 @@ public class Server implements ServerInterface {
             }
 
         }
-
-
     }
 
     //Restaurant Details
@@ -84,13 +82,7 @@ public class Server implements ServerInterface {
     //Dishes
     @Override
     public List<Dish> getDishes() {
-
-        try {
-            test.sendMessage(StockManagement.getDishes());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return StockManagement.getDishes();
+        return stockManagement.getDishes();
     }
 
     @Override
@@ -104,7 +96,7 @@ public class Server implements ServerInterface {
         }
 
         Dish newDish = new Dish(name, description, price, restockThreshold, restockAmount);
-        StockManagement.getDishesStock().put(newDish, 0);
+        stockManagement.getDishesStock().put(newDish, 0);
 
         this.notifyUpdate();
         return newDish;
@@ -112,23 +104,23 @@ public class Server implements ServerInterface {
 
     @Override
     public void removeDish(Dish dish) {
-        StockManagement.getDishes().remove(dish);
+        stockManagement.getDishes().remove(dish);
         this.notifyUpdate();
     }
 
     @Override
     public Map<Dish, Number> getDishStockLevels() {
-        return StockManagement.getDishesStock();
+        return stockManagement.getDishesStock();
     }
 
     @Override
     public void setRestockingIngredientsEnabled(boolean enabled) {
-        StockManagement.setRestockIngredientsEnabled(enabled);
+        stockManagement.setRestockIngredientsEnabled(enabled);
     }
 
     @Override
     public void setRestockingDishesEnabled(boolean enabled) {
-        StockManagement.setRestockDishesEnabled(enabled);
+        stockManagement.setRestockDishesEnabled(enabled);
     }
 
     @Override
@@ -178,22 +170,22 @@ public class Server implements ServerInterface {
 
     @Override
     public void setStock(Dish dish, Number stock) {
-        Number oldValue = StockManagement.getDishesStock().get(dish);
-        StockManagement.getDishesStock().replace(dish, oldValue.intValue(), stock.intValue());
+        Number oldValue = stockManagement.getDishesStock().get(dish);
+        stockManagement.getDishesStock().replace(dish, oldValue.intValue(), stock.intValue());
         this.notifyUpdate();
     }
 
     //Ingredients
     @Override
     public void setStock(Ingredient ingredient, Number stock) {
-        Number oldValue = StockManagement.getDishesStock().get(ingredient);
-        StockManagement.getIngredientsStock().replace(ingredient, oldValue.intValue(), stock.intValue());
+        Number oldValue = stockManagement.getDishesStock().get(ingredient);
+        stockManagement.getIngredientsStock().replace(ingredient, oldValue.intValue(), stock.intValue());
         this.notifyUpdate();
     }
 
     @Override
     public List<Ingredient> getIngredients() {
-        return StockManagement.getIngredients();
+        return stockManagement.getIngredients();
     }
 
     @Override
@@ -207,20 +199,20 @@ public class Server implements ServerInterface {
             }
         }
         Ingredient mockIngredient = new Ingredient(name, unit, supplier, restockThreshold, restockAmount, weight);
-        StockManagement.getIngredientsStock().put(mockIngredient, 0);
+        stockManagement.getIngredientsStock().put(mockIngredient, 0);
         this.notifyUpdate();
         return mockIngredient;
     }
 
     @Override
     public void removeIngredient(Ingredient ingredient) {
-        StockManagement.getIngredientsStock().remove(ingredient);
+        stockManagement.getIngredientsStock().remove(ingredient);
         this.notifyUpdate();
     }
 
     @Override
     public Map<Ingredient, Number> getIngredientStockLevels() {
-        return StockManagement.getIngredientsStock();
+        return stockManagement.getIngredientsStock();
     }
 
     @Override
@@ -706,7 +698,7 @@ public class Server implements ServerInterface {
                     //System.out.println("Dish: " + orderMatcher.group(3));
                     //System.out.println("Quantity: " + orderMatcher.group(2));
 
-                    Dish dishToAdd = StockManagement.getDish(orderMatcher.group(3));
+                    Dish dishToAdd = stockManagement.getDish(orderMatcher.group(3));
                     Integer quantity = valueOf(orderMatcher.group(2));
 
                     orderbasket.put(dishToAdd, quantity);
@@ -730,63 +722,8 @@ public class Server implements ServerInterface {
                 //System.out.println("Stock of Item: " + itemName);
                 //System.out.println("Quantity: " + itemQuantity);
 
-                StockManagement.dishIngredientFinder(itemName, itemQuantity);
+                stockManagement.dishIngredientFinder(itemName, itemQuantity);
             }
-        }
-
-    }
-
-    public static class ServerCommunication implements Communication {
-        private final Socket socket;
-        private final ServerSocket serverSocket;
-        private BufferedReader bufferedReader;
-
-        private ObjectOutputStream output;
-        private ObjectInputStream input;
-
-
-        ServerCommunication() throws Exception {
-            serverSocket = new ServerSocket(5000);
-            System.out.println("Awaiting connection...");
-
-            this.socket =serverSocket.accept();
-            System.out.println("Connection from "+socket.toString());
-
-            this.input = new ObjectInputStream(socket.getInputStream());
-            this.output = new ObjectOutputStream(socket.getOutputStream());
-
-            //this.bufferedReader = new BufferedReader(new InputStreamReader(System.in));
-
-        }
-
-        @Override
-        public void sendMessage() throws IOException, ClassNotFoundException {
-
-
-
-
-        }
-
-        @Override
-        public void receiveMessage() throws IOException, ClassNotFoundException {
-
-        }
-
-        @Override
-        public void sendMessage(Object object) throws IOException {
-            output.writeObject(object);
-            System.out.println(object.toString());
-
-        }
-
-        @Override
-        public void sendCmdMessage() {
-
-        }
-
-        @Override
-        public void receiveCmdMessage() {
-
         }
     }
 }

@@ -19,18 +19,16 @@ public class StockManagement {
     static boolean restockIngredientsEnabled;
     static boolean restockDishesEnabled = true;
 
-    private static List<Dish> dishes;
-    private static List<Ingredient> ingredients;
+    private  List<Dish> dishes;
+    private  List<Ingredient> ingredients;
 
     public static Map<Ingredient, Number> getIngredientsStock() {
         ingredientsLock.tryLock();
-        //System.out.println("getIngredientsStock() Thread Locked by: "+dishesLock.toString()+"\n");
 
         try {
             return ingredientsStock;
         } finally {
             ingredientsLock.unlock();
-            //System.out.println("getIngredientsStock() Thread unlocked by: "+dishesLock.toString()+"\n");
 
         }
     }
@@ -38,16 +36,14 @@ public class StockManagement {
 
     public static Map<Dish, Number> getDishesStock() {
         dishesLock.lock();
-        //System.out.println("getDishesStock() Thread Locked by: "+dishesLock.toString()+"\n");
         try {
             return getDishesStock;
         } finally {
             dishesLock.unlock();
-            //System.out.println("getDishesStock() Thread unlocked by: "+dishesLock.toString()+"\n");
         }
     }
 
-    private static void ingredientsTracker() {
+    private  void ingredientsTracker() {
 
         for (Ingredient existingIngredient : getIngredients()) {
             System.out.println("Ingredient: " + existingIngredient.getName()
@@ -55,7 +51,7 @@ public class StockManagement {
         }
     }
 
-    private static void dishesTracker() {
+    private void dishesTracker() {
 
         for (Dish existingDish : getDishes()) {
             System.out.println("Dish: " + existingDish.getName()
@@ -63,7 +59,7 @@ public class StockManagement {
         }
     }
 
-    public static List<Dish> getDishes() {
+    public List<Dish> getDishes() {
         Set<Dish> dishesSet;
         dishesLock.tryLock();
         try {
@@ -75,7 +71,7 @@ public class StockManagement {
         return dishes;
     }
 
-    public static Dish getDish(String name) {
+    public  Dish getDish(String name) {
         for (Dish dishes : getDishes()) {
             if (dishes.getName().equals(name)) {
                 return dishes;
@@ -84,7 +80,7 @@ public class StockManagement {
         return null;
     }
 
-    public static List<Ingredient> getIngredients() {
+    public List<Ingredient> getIngredients() {
         Set<Ingredient> ingredientsSet;
         synchronized (StockManagement.class) {
             ingredientsSet = ingredientsStock.keySet();
@@ -94,10 +90,10 @@ public class StockManagement {
         return ingredients;
     }
 
-    public static void setIngredients(ArrayList<Ingredient> ingredients) {
+    public  void setIngredients(ArrayList<Ingredient> is) {
         ingredientsLock.tryLock();
         try {
-            StockManagement.ingredients = ingredients;
+            ingredients = is;
 
         } finally {
             ingredientsLock.unlock();
@@ -121,14 +117,14 @@ public class StockManagement {
 
     }
 
-    static void dishIngredientFinder(String itemName, String itemQuantity) {
-        for (Dish dish : StockManagement.getDishes()) {
+     void dishIngredientFinder(String itemName, String itemQuantity) {
+        for (Dish dish : getDishes()) {
             if (dish.getName().equals(itemName)) {
                 StockManagement.getDishesStock().replace(dish, valueOf(itemQuantity));
             }
         }
 
-        for (Ingredient ingredient : StockManagement.getIngredients()) {
+        for (Ingredient ingredient : getIngredients()) {
             if (ingredient.getName().equals(itemName)) {
                 StockManagement.getIngredientsStock().replace(ingredient, valueOf(itemQuantity));
             }
@@ -178,13 +174,8 @@ class StockChecker extends StockManagement implements Runnable {
                         notifyAll();
 
                     }
-
-
                 }
-                Thread.sleep(40000);
-
-
-
+                Thread.sleep(35000);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

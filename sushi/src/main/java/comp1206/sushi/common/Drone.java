@@ -1,7 +1,9 @@
 package comp1206.sushi.common;
 
-public class Drone extends Model {
+import java.io.Serializable;
 
+public class Drone extends Model implements Serializable {
+	public static final long serialVersionUID = -1250134517313411885L;
 	private Number speed;
 	private Number progress;
 	

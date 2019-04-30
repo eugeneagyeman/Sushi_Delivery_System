@@ -2,6 +2,7 @@ package comp1206.sushi.common;
 
 import comp1206.sushi.server.StockManagement;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -12,8 +13,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static comp1206.sushi.server.StockManagement.getDishes;
 
-public class Staff extends Model implements Runnable {
-
+public class Staff extends Model implements Runnable, Serializable {
+    public static final long serialVersionUID = 1755448731277423394L;
     private final static Lock dishesLock = new ReentrantLock(true);
     private String name;
     private String status;

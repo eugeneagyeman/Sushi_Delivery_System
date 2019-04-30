@@ -1,7 +1,9 @@
 package comp1206.sushi.common;
 
-public class Supplier extends Model {
+import java.io.Serializable;
 
+public class Supplier extends Model implements Serializable {
+	public static final long serialVersionUID = 1424375336027477290L;
 	private String name;
 	private Postcode postcode;
 	private Number distance;
