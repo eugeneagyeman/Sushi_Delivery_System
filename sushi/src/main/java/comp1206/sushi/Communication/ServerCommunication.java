@@ -7,12 +7,16 @@ import comp1206.sushi.server.Server;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import comp1206.sushi.common.*;
+import comp1206.sushi.server.StockManagement;
 
 
 public class ServerCommunication  extends Thread{
-    ArrayList<ServerListener> list_of_active_clients = new ArrayList<>();
+    ArrayList<ClientServerListener> list_of_active_clients = new ArrayList<>();
     //ServerSocket serverSocket;
     //Socket clientSocket;
     Server server;
@@ -58,12 +62,16 @@ public class ServerCommunication  extends Thread{
         serverComms.getKryo().register(Postcode.class);
         serverComms.getKryo().register(Restaurant.class);
         serverComms.getKryo().register(User.class);
-        serverComms.getKryo().register(java.util.Collections.class);
+        serverComms.getKryo().register(Supplier.class);
+        serverComms.getKryo().register(ConcurrentHashMap.class);
+        serverComms.getKryo().register(ArrayList.class);
+        serverComms.getKryo().register(Collections.class);
+        serverComms.getKryo().register(HashMap.class);
 
-        serverComms.bind(6000,6000);
+        serverComms.bind(6000);
         serverComms.start();
 
-        serverComms.addListener(new ServerListener());
+        serverComms.addListener(new ClientServerListener());
 
         System.out.println("Server comms initialised.");
 
@@ -74,10 +82,10 @@ public class ServerCommunication  extends Thread{
     }
 
 
-    class ServerListener extends Listener {
+    class ClientServerListener extends Listener {
         String name;
 
-        public ServerListener() {
+        public ClientServerListener() {
         }
 
         public void connected(Connection c) {

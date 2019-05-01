@@ -23,6 +23,10 @@ public class Ingredient extends Model implements Serializable {
 		this.setWeight(weight);
 	}
 
+	public Ingredient() {
+
+	}
+
 	public synchronized String getName() {
 		return name;
 	}

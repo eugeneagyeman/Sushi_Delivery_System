@@ -11,7 +11,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static comp1206.sushi.server.StockManagement.getDishes;
 
 public class Staff extends Model implements Runnable, Serializable {
     public static final long serialVersionUID = 1755448731277423394L;
@@ -27,6 +26,10 @@ public class Staff extends Model implements Runnable, Serializable {
         this.setName(name);
         this.setFatigue(0);
         this.setStatus("Idle");
+
+    }
+
+    public Staff() {
 
     }
 

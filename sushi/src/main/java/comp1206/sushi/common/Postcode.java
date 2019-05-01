@@ -23,6 +23,10 @@ public class Postcode extends Model implements Serializable {
 		calculateLatLong();
 		calculateDistance(restaurant);
 	}
+
+	public Postcode() {
+
+	}
 	
 	@Override
 	public String getName() {

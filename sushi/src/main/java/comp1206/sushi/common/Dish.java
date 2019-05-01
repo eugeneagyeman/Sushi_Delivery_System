@@ -24,6 +24,10 @@ public final class Dish extends Model implements Serializable {
 		this.recipe = new HashMap<Ingredient,Number>();
 	}
 
+	public Dish() {
+
+	}
+
 	public synchronized String getName() {
 		return name;
 	}

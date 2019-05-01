@@ -7,10 +7,13 @@ import comp1206.sushi.common.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ClientCommunication {
     Client client;
-    static com.esotericsoftware.kryonet.Client clientComms;
+    com.esotericsoftware.kryonet.Client clientComms;
     static String ip = "localhost";
     static int tcpPort = 6000;
     boolean messageReceived = false;
@@ -18,32 +21,40 @@ public class ClientCommunication {
 
 
     public ClientCommunication(Client aClient) throws IOException, InterruptedException {
-        client = aClient;
-        clientComms = new com.esotericsoftware.kryonet.Client();
+        this.client = aClient;
+        this.clientComms = new com.esotericsoftware.kryonet.Client();
 
-        clientComms.getKryo().register(Dish.class);
-        clientComms.getKryo().register(User.class);
-        clientComms.getKryo().register(Order.class);
-        clientComms.getKryo().register(ArrayList.class);
+        this.clientComms.getKryo().register(Dish.class);
+        this.clientComms.getKryo().register(Ingredient.class);
+        this.clientComms.getKryo().register(Order.class);
+        this.clientComms.getKryo().register(Postcode.class);
+        this.clientComms.getKryo().register(Restaurant.class);
+        this.clientComms.getKryo().register(User.class);
+        this.clientComms.getKryo().register(Supplier.class);
+        this.clientComms.getKryo().register(ConcurrentHashMap.class);
+        this.clientComms.getKryo().register(ArrayList.class);
+        this.clientComms.getKryo().register(Collections.class);
+        this.clientComms.getKryo().register(HashMap.class);
 
-        clientComms.start();
-        clientComms.connect(5000,ip,tcpPort,6000);
 
-        clientComms.addListener(new ClientListener());
+        this.clientComms.start();
+        this.clientComms.connect(5000,ip,tcpPort);
 
-        while(!messageReceived) {
+        this.clientComms.addListener(new ServerClientListener());
+
+        while(messageReceived) {
             Thread.sleep(1000);
         }
-        System.out.println("The client program is waiting for");
+        System.out.println("Message has been received...");
 
 
     }
 
     public void sendMessage(Object obj) {
-        connection.sendTCP(obj);
+        clientComms.sendTCP(obj);
     }
 
-    public class ClientListener extends Listener {
+    public class ServerClientListener extends Listener {
         String name;
 
         //set the dishes to what has been received
@@ -58,7 +69,6 @@ public class ClientCommunication {
         }
 
         public void connected(Connection c) {
-            connection = c;
             System.out.println("Connected to server: "+c.getRemoteAddressTCP().getHostString());
         }
 

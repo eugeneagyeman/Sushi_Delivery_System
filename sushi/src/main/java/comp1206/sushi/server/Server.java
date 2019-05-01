@@ -9,7 +9,6 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
@@ -27,19 +26,19 @@ public class Server implements ServerInterface {
     private static final ArrayList<Order> orders = new ArrayList<Order>();
     private static final ArrayList<User> users = new ArrayList<User>();
     private static final ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
-    private static Restaurant restaurant;
     private static final ArrayList<Drone> drones = new ArrayList<Drone>();
     private static final ArrayList<Staff> staff = new ArrayList<Staff>();
     private static final ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
     private static final ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
+    private static Restaurant restaurant;
     private Lock taskLock = new ReentrantLock();
-    private ServerSocket serverSocket;
     private StockManagement stockManagement;
 
 
     public Server() {
         logger.info("Starting up server...");
-        loadConfiguration("Configuration.txt");
+        stockManagement = new StockManagement();
+
         init();
         try {
             new ServerCommunication(this).start();
@@ -50,9 +49,9 @@ public class Server implements ServerInterface {
     }
 
     private void init() {
-        stockManagement = new StockManagement();
+        loadConfiguration("Configuration.txt");
         BlockingQueue<Dish> serverQueue = new LinkedBlockingQueue<>(10);
-        new Thread(new StockChecker(serverQueue), "Stock Checker").start();
+        //new Thread(new StockChecker(serverQueue), "Stock Checker").start();
 
         synchronized (taskLock) {
             for (Staff staff : getStaff()) {

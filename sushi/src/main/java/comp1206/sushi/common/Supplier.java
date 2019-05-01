@@ -13,6 +13,10 @@ public class Supplier extends Model implements Serializable {
 		this.postcode = postcode;
 	}
 
+	public Supplier() {
+
+	}
+
 	public String getName() {
 		return name;
 	}

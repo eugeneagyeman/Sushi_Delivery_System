@@ -13,7 +13,7 @@ public class User extends Model implements Serializable {
 	private String address;
 	private Postcode postcode;
 	private Map<Dish,Number> basket;
-	private final ArrayList<Order> orders;
+	private ArrayList<Order> orders;
 
 
 	public User(String username, String password, String address, Postcode postcode) {
@@ -23,6 +23,10 @@ public class User extends Model implements Serializable {
 		this.postcode = postcode;
 		this.basket = new HashMap<>();
 		orders = new ArrayList<>();
+
+	}
+
+	public User() {
 
 	}
 
