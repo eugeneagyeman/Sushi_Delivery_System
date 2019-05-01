@@ -36,6 +36,7 @@ public class Order extends Model implements Serializable {
 		fufilled = false;
 	}
 
+
 	public Number getDistance() {
 		return 1;
 	}
