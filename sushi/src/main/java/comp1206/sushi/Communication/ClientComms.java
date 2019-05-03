@@ -27,6 +27,9 @@ public class ClientComms extends Thread {
     ObjectInputStream clientInputStream;
     ObjectOutputStream clientOutputStream;
     Client client;
+    Socket clientSocket;
+    boolean recevingMessages = true;
+
 
     public ClientComms(Client aClient) {
         serverName = "localhost";
@@ -37,7 +40,7 @@ public class ClientComms extends Thread {
 
         try {
             System.out.println("Connecting to " + serverName + " on port " + port);
-            Socket clientSocket = new Socket(serverName, port);
+            clientSocket = new Socket(serverName, port);
 
             System.out.println("Just connected to " + clientSocket.getRemoteSocketAddress());
             clientOutputStream = new ObjectOutputStream(clientSocket.getOutputStream());
@@ -53,8 +56,12 @@ public class ClientComms extends Thread {
         clientOutputStream.writeObject(obj);
     }
 
+    public void setRecevingMessages(boolean isAlive) {
+        recevingMessages = isAlive;
+    }
+
     public void run() {
-        while(true) {
+        while(recevingMessages) {
             try {
 
 
@@ -75,6 +82,15 @@ public class ClientComms extends Thread {
                 e.printStackTrace();
             }
         }
+    }
+
+    public void close() throws IOException {
+            setRecevingMessages(false);
+            clientOutputStream.close();
+            clientInputStream.close();
+            clientSocket.close();
+
+
     }
 
 
