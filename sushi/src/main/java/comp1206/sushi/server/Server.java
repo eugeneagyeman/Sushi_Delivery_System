@@ -1,14 +1,13 @@
 package comp1206.sushi.server;
 
-import com.esotericsoftware.kryo.Kryo;
-import comp1206.sushi.Communication.ServerCommunication;
+import comp1206.sushi.Communication.ClientComms;
+import comp1206.sushi.Communication.ServerComms;
 import comp1206.sushi.common.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 
 import java.io.*;
-import java.net.ServerSocket;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
@@ -33,11 +32,16 @@ public class Server implements ServerInterface {
     private static Restaurant restaurant;
     private Lock taskLock = new ReentrantLock();
     private StockManagement stockManagement;
-    private ServerCommunication serverComms;
+    private ServerComms serverComms;
 
 
     public Server() {
         logger.info("Starting up server...");
+        try {
+            serverComms = new ServerComms(this);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         stockManagement = new StockManagement();
         Postcode restaurantPostcode = new Postcode("SO17 1BJ");
         restaurant = new Restaurant("Mock Restaurant", restaurantPostcode);
@@ -51,7 +55,7 @@ public class Server implements ServerInterface {
     }
 
     private void init() throws IOException {
-        serverComms = new ServerCommunication(this);
+
 
         loadConfiguration("Configuration.txt");
         BlockingQueue<Dish> serverQueue = new LinkedBlockingQueue<>(10);
@@ -99,9 +103,26 @@ public class Server implements ServerInterface {
 
         Dish newDish = new Dish(name, description, price, restockThreshold, restockAmount);
         stockManagement.getDishesStock().put(newDish, 0);
-        serverComms.sendMessage(newDish);
+        try {
+            serverComms.sendMsg(newDish,true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         this.notifyUpdate();
         return newDish;
+    }
+
+    public Dish addDish(Dish dishToAdd) {
+
+        for (Dish existingDishes : getDishStockLevels().keySet()) {
+            if (existingDishes.getName().equals(dishToAdd.getName())) {
+                this.notifyUpdate();
+                return existingDishes;
+            }
+        }
+        stockManagement.getDishesStock().put(dishToAdd,0);
+        this.notifyUpdate();
+        return dishToAdd;
     }
 
     @Override
@@ -616,7 +637,8 @@ public class Server implements ServerInterface {
                 Integer restock_threshold = valueOf(matcher.group(4));
                 Integer restock_amount = valueOf(matcher.group(5));
 
-                Dish definedDish = addDish(dishName, description, price, restock_threshold, restock_amount);
+                Dish builtDish = new Dish(dishName,description,price,restock_threshold,restock_amount);
+                addDish(builtDish);
 
                 Pattern ingredientsDishPattern = Pattern.compile("((\\d+) \\* (\\w+))");
                 Matcher ingredientMatcher = ingredientsDishPattern.matcher(matcher.group(6));
@@ -634,7 +656,7 @@ public class Server implements ServerInterface {
                         if (ingredient.getName().equals(parsedIngredient)) ingredientFromSys = ingredient;
                     }
 
-                    addIngredientToDish(definedDish, ingredientFromSys, parsedIngredientQuantity);
+                    addIngredientToDish(builtDish, ingredientFromSys, parsedIngredientQuantity);
                 }
 
             }

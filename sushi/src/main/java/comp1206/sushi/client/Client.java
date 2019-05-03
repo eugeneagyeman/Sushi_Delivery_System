@@ -3,11 +3,12 @@ package comp1206.sushi.client;
 import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 
-import comp1206.sushi.Communication.ClientCommunication;
+import comp1206.sushi.Communication.ClientComms;
+import comp1206.sushi.Communication.ServerComms;
 import comp1206.sushi.common.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,7 +28,7 @@ public class Client implements ClientInterface {
     DataInputStream receiveStringStream;
     DataOutputStream sendStringStream;
     Socket clientSocket;
-    ClientCommunication comms;
+    ClientComms comms;
 
 
     public Client() {
@@ -48,18 +49,8 @@ public class Client implements ClientInterface {
         postcodes.add(postcode4);
         postcodes.add(postcode5);*/
 
-        try {
-            comms = new ClientCommunication(this);
-            comms.sendMessage("Dishes");
-            comms.sendMessage("Postcodes");
-            comms.sendMessage("Users");
-            comms.sendMessage("Restaurant");
+        comms = new ClientComms(this);
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
         /*Dish dish1 = new Dish("Dish 1", "Dish 1", 1, 1, 10);
         Dish dish2 = new Dish("Dish 2", "Dish 2", 2, 1, 10);
         Dish dish3 = new Dish("Dish 3", "Dish 3", 3, 1, 10);
@@ -129,7 +120,11 @@ public class Client implements ClientInterface {
         User mockUser = new User(username, password, address, postcode);
         //add to server
         users.add(mockUser);
-        comms.sendMessage(mockUser);
+        try {
+            comms.sendMsg(mockUser);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return mockUser;
     }
 
@@ -146,9 +141,19 @@ public class Client implements ClientInterface {
         return postcodes;
     }
 
+    public void addPostcode(Postcode postcode) {
+        getPostcodes().add(postcode);
+        this.notifyUpdate();
+    }
+
     @Override
     public List<Dish> getDishes() {
         return dishes;
+    }
+
+    public void addDish(Dish dish) {
+        getDishes().add(dish);
+        this.notifyUpdate();
     }
 
     public void setDishes(ArrayList<Dish> dishes) {
@@ -215,6 +220,11 @@ public class Client implements ClientInterface {
         user.getBasket().clear();
 
         //notify server
+        try {
+            comms.sendMsg(checkoutOrder);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         this.notifyUpdate();
         return checkoutOrder;
     }
@@ -264,6 +274,10 @@ public class Client implements ClientInterface {
     @Override
     public void notifyUpdate() {
         this.listeners.forEach(listener -> listener.updated(new UpdateEvent()));
+    }
+
+    public List<User> getUsers() {
+        return this.users;
     }
 
 //	public void notifyUpdate(UpdateEvent updateEvent){
