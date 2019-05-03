@@ -29,12 +29,14 @@ public class ClientComms extends Thread {
     Client client;
     Socket clientSocket;
     boolean recevingMessages = true;
+    String id;
 
 
-    public ClientComms(Client aClient) {
+    public ClientComms(Client aClient,String id) {
         serverName = "localhost";
         port = 3000;
         this.client = aClient;
+        this.id = id;
 
 
 

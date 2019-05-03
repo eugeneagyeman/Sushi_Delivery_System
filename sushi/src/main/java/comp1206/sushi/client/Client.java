@@ -23,12 +23,8 @@ public class Client implements ClientInterface {
     public static ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
     public static ArrayList<Dish> dishes = new ArrayList<Dish>();
     private ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
-    ObjectInputStream receiveObjectStream;
-    ObjectOutputStream sendObjectStream;
-    DataInputStream receiveStringStream;
-    DataOutputStream sendStringStream;
-    Socket clientSocket;
     ClientComms comms;
+    String id;
 
 
     public Client() {
@@ -49,7 +45,7 @@ public class Client implements ClientInterface {
         postcodes.add(postcode4);
         postcodes.add(postcode5);*/
 
-        comms = new ClientComms(this);
+        comms = new ClientComms(this,id);
 
         /*Dish dish1 = new Dish("Dish 1", "Dish 1", 1, 1, 10);
         Dish dish2 = new Dish("Dish 2", "Dish 2", 2, 1, 10);

@@ -14,24 +14,24 @@ import java.util.ArrayList;
 
 public class ServerComms extends Thread {
     private ServerSocket serverSocket;
-
-
     protected ObjectOutputStream outputStream;
     protected static ObjectInputStream inputStream;
-    static Server server;
+
+    Server server;
     ClientListener clientListener;
 
     public ServerComms(Server aServer) throws IOException {
         serverSocket = new ServerSocket(3000);
         this.server = aServer;
-        clientListener = new ClientListener();
+        this.clientListener = new ClientListener();
         this.start();
     }
 
     public void run() {
+        this.clientListener.setRecevingMessages(false);
+        this.clientListener.start();
         while (true) {
             try {
-                System.out.println("Waiting...");
                 System.out.println("Waiting for client on port " +
                         serverSocket.getLocalPort() + "...");
 
@@ -51,8 +51,9 @@ public class ServerComms extends Thread {
                 for (User user : server.getUsers()) {
                     outputStream.writeObject(user);
                 }
+                this.clientListener.setRecevingMessages(true);
 
-                clientListener.start();
+
 
             } catch (SocketTimeoutException s) {
                 System.out.println("Socket timed out!");
@@ -93,6 +94,10 @@ public class ServerComms extends Thread {
     protected class ClientListener extends Thread {
         ArrayList<ServerComms> activeClients = new ArrayList<>();
         boolean recevingMessages = true;
+
+        ClientListener() {
+
+        }
 
 
         public void setRecevingMessages(boolean isAlive) {
