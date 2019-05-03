@@ -33,32 +33,35 @@ public class Server implements ServerInterface {
     private static Restaurant restaurant;
     private Lock taskLock = new ReentrantLock();
     private StockManagement stockManagement;
+    private ServerCommunication serverComms;
 
 
     public Server() {
         logger.info("Starting up server...");
         stockManagement = new StockManagement();
+        Postcode restaurantPostcode = new Postcode("SO17 1BJ");
+        restaurant = new Restaurant("Mock Restaurant", restaurantPostcode);
 
-        init();
         try {
-            new ServerCommunication(this).start();
+            init();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
     }
 
-    private void init() {
+    private void init() throws IOException {
+        serverComms = new ServerCommunication(this);
+
         loadConfiguration("Configuration.txt");
         BlockingQueue<Dish> serverQueue = new LinkedBlockingQueue<>(10);
-        //new Thread(new StockChecker(serverQueue), "Stock Checker").start();
+        new Thread(new StockChecker(serverQueue), "Stock Checker").start();
 
         synchronized (taskLock) {
             for (Staff staff : getStaff()) {
                 staff.setDishBlockingQueue(serverQueue);
                 (new Thread(staff, staff.getName())).start();
             }
-
         }
     }
 
@@ -96,7 +99,7 @@ public class Server implements ServerInterface {
 
         Dish newDish = new Dish(name, description, price, restockThreshold, restockAmount);
         stockManagement.getDishesStock().put(newDish, 0);
-
+        serverComms.sendMessage(newDish);
         this.notifyUpdate();
         return newDish;
     }
@@ -315,6 +318,7 @@ public class Server implements ServerInterface {
     public Staff addStaff(String name) {
         Staff mock = new Staff(name);
         staff.add(mock);
+        new Thread(mock,mock.getName()).start();
         return mock;
     }
 
@@ -326,12 +330,7 @@ public class Server implements ServerInterface {
 
     @Override
     public String getStaffStatus(Staff staff) {
-        Random rand = new Random();
-        if (rand.nextBoolean()) {
-            return "Idle";
-        } else {
-            return "Working";
-        }
+        return staff.getStatus();
     }
 
     //Orders
@@ -340,7 +339,7 @@ public class Server implements ServerInterface {
         return orders;
     }
 
-    private Order addOrder(String user) {
+    public Order addOrder(String user) {
         for (Order existingOrder : getOrders()) {
             if (existingOrder.getUser().getName().equals(user)) {
                 this.notifyUpdate();

@@ -17,12 +17,12 @@ public class ClientCommunication {
     static String ip = "localhost";
     static int tcpPort = 6000;
     boolean messageReceived = false;
-    Connection connection;
-
 
     public ClientCommunication(Client aClient) throws IOException, InterruptedException {
+        System.out.println("Initialising server communications...");
         this.client = aClient;
-        this.clientComms = new com.esotericsoftware.kryonet.Client();
+        this.clientComms = new com.esotericsoftware.kryonet.Client(22528,10480);
+
 
         this.clientComms.getKryo().register(Dish.class);
         this.clientComms.getKryo().register(Ingredient.class);
@@ -42,11 +42,6 @@ public class ClientCommunication {
 
         this.clientComms.addListener(new ServerClientListener());
 
-        while(messageReceived) {
-            Thread.sleep(1000);
-        }
-        System.out.println("Message has been received...");
-
 
     }
 
@@ -61,9 +56,21 @@ public class ClientCommunication {
         public void received(Connection c, Object obj) {
             messageReceived = true;
             if(obj instanceof ArrayList) {
+                ArrayList objects = (ArrayList) obj;
                 if(((ArrayList) obj).get(0) instanceof Dish) {
                     client.setDishes((ArrayList<Dish>)obj);
+                } else if(objects.get(0) instanceof Postcode)
+                {
+                    client.setPostcodes((ArrayList<Postcode>) objects);
+                } else if(objects.get(0) instanceof User) {
+                    client.setUsers((ArrayList<User>) objects);
                 }
+            } else if(obj instanceof User) {
+                client.login(((User) obj).getName(),((User) obj).getPassword());
+            } else if(obj instanceof Dish) {
+                Dish dishToAdd = (Dish) obj;
+                client.getDishes().add(dishToAdd);
+                client.notifyUpdate();
             }
 
         }

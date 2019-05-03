@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public final class Dish extends Model implements Serializable {
-	public static final long serialVersionUID = -8934360472092307508L;
+	public static final long serialVersionUID = 7154708378782323147L;
 	private String name;
 	private String description;
 	private Number price;

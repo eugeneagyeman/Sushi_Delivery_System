@@ -1,5 +1,6 @@
 package comp1206.sushi.Communication;
 
+import com.esotericsoftware.kryo.KryoException;
 import com.esotericsoftware.kryonet.Connection;
 import com.esotericsoftware.kryonet.Listener;
 import comp1206.sushi.common.Dish;
@@ -21,6 +22,7 @@ public class ServerCommunication  extends Thread{
     //Socket clientSocket;
     Server server;
     Connection connection;
+    com.esotericsoftware.kryonet.Server serverComms;
     boolean messageReceived;
 
 
@@ -54,7 +56,7 @@ public class ServerCommunication  extends Thread{
         System.out.println("Initialising server communications...");
         this.server = aServer;
 
-        com.esotericsoftware.kryonet.Server serverComms = new com.esotericsoftware.kryonet.Server();
+        serverComms = new com.esotericsoftware.kryonet.Server(22528,10248);
 
         serverComms.getKryo().register(Dish.class);
         serverComms.getKryo().register(Ingredient.class);
@@ -63,6 +65,7 @@ public class ServerCommunication  extends Thread{
         serverComms.getKryo().register(Restaurant.class);
         serverComms.getKryo().register(User.class);
         serverComms.getKryo().register(Supplier.class);
+
         serverComms.getKryo().register(ConcurrentHashMap.class);
         serverComms.getKryo().register(ArrayList.class);
         serverComms.getKryo().register(Collections.class);
@@ -77,8 +80,8 @@ public class ServerCommunication  extends Thread{
 
 
     }
-    public void sendMessage(Object obj) {
-        connection.sendTCP(obj);
+    public void sendMessage(Object obj) throws NullPointerException{
+        serverComms.sendToAllTCP(obj);
     }
 
 
@@ -91,20 +94,43 @@ public class ServerCommunication  extends Thread{
         public void connected(Connection c) {
             name = c.getRemoteAddressTCP().getHostName();
             System.out.println("Connection received from " + name);
-            connection = c;
             list_of_active_clients.add(this);
         }
 
         //If request is dishes return dishes else
         public void received(Connection c, Object obj) {
-            if(obj instanceof Order) {
-                Order anOrder = (Order) obj;
-                server.getOrders().add(anOrder);
-            } else if(obj instanceof String) {
-                switch((String) obj) {
-                    case "Dishes":
-                        sendMessage(server.getDishes());
+            try {
+                if(obj instanceof Order) {
+                    Order anOrder = (Order) obj;
+                    server.addOrder(anOrder.getUser().getName());
+                } else if(obj instanceof String) {
+                    switch((String) obj) {
+                        case "Dishes":
+                            sendMessage(server.getDishes());
+                        case "Postcodes":
+                            sendMessage(server.getPostcodes());
+                        case "Users":
+                            sendMessage(server.getUsers());
+                        case "Restaurant":
+                            sendMessage(server.getRestaurant());
+                            break;
+
+                    }
+                } else if (obj instanceof User) {
+                    User userToAdd = (User) obj;
+
+                    server.getUsers().add(userToAdd);
+                    sendMessage(userToAdd);
+                    server.notifyUpdate();
                 }
+            } catch (NullPointerException e) {
+
+            } catch (IllegalStateException e) {
+                e.printStackTrace();
+            } catch (KryoException e) {
+
+            } catch (IllegalArgumentException e) {
+
             }
         }
     }

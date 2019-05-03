@@ -17,6 +17,7 @@ public class Client implements ClientInterface {
     private static final Logger logger = LogManager.getLogger("Client");
 
     public Restaurant restaurant;
+
     public static ArrayList<User> users = new ArrayList<User>();
     public static ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
     public static ArrayList<Dish> dishes = new ArrayList<Dish>();
@@ -26,6 +27,7 @@ public class Client implements ClientInterface {
     DataInputStream receiveStringStream;
     DataOutputStream sendStringStream;
     Socket clientSocket;
+    ClientCommunication comms;
 
 
     public Client() {
@@ -34,7 +36,7 @@ public class Client implements ClientInterface {
         Postcode restaurantPostcode = new Postcode("SO17 1BJ");
         restaurant = new Restaurant("Mock Restaurant", restaurantPostcode);
 
-        Postcode postcode1 = new Postcode("SO17 1TJ");
+        /*Postcode postcode1 = new Postcode("SO17 1TJ");
         Postcode postcode2 = new Postcode("SO17 1BX");
         Postcode postcode3 = new Postcode("SO17 2NJ");
         Postcode postcode4 = new Postcode("SO17 1TW");
@@ -44,11 +46,15 @@ public class Client implements ClientInterface {
         postcodes.add(postcode2);
         postcodes.add(postcode3);
         postcodes.add(postcode4);
-        postcodes.add(postcode5);
+        postcodes.add(postcode5);*/
 
         try {
-            ClientCommunication comms = new ClientCommunication(this);
+            comms = new ClientCommunication(this);
             comms.sendMessage("Dishes");
+            comms.sendMessage("Postcodes");
+            comms.sendMessage("Users");
+            comms.sendMessage("Restaurant");
+
         } catch (IOException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -95,6 +101,14 @@ public class Client implements ClientInterface {
 
     }
 
+    public static void setUsers(ArrayList<User> users) {
+        Client.users = users;
+    }
+
+    public static void setPostcodes(ArrayList<Postcode> postcodes) {
+        Client.postcodes = postcodes;
+    }
+
     @Override
     public Restaurant getRestaurant() {
         return this.restaurant;
@@ -115,7 +129,7 @@ public class Client implements ClientInterface {
         User mockUser = new User(username, password, address, postcode);
         //add to server
         users.add(mockUser);
-        //update ui
+        comms.sendMessage(mockUser);
         return mockUser;
     }
 
@@ -134,7 +148,6 @@ public class Client implements ClientInterface {
 
     @Override
     public List<Dish> getDishes() {
-
         return dishes;
     }
 

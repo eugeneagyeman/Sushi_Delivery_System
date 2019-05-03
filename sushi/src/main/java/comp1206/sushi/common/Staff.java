@@ -131,6 +131,8 @@ public class Staff extends Model implements Runnable, Serializable {
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        } catch (NullPointerException queueNotInitialised) {
+            System.out.println("Queue not initialised yet");
         }
 
 
