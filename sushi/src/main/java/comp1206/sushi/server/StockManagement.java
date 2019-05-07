@@ -2,7 +2,6 @@ package comp1206.sushi.server;
 
 import comp1206.sushi.common.Dish;
 import comp1206.sushi.common.Ingredient;
-import comp1206.sushi.common.Order;
 
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
@@ -15,7 +14,7 @@ import static java.lang.Integer.valueOf;
 public class StockManagement {
     private final static Lock dishesLock = new ReentrantLock(true);
     private final static Lock ingredientsLock = new ReentrantLock(true);
-    static boolean restockIngredientsEnabled = true;
+    static boolean restockIngredientsEnabled;
     static boolean restockDishesEnabled = true;
     private static Map<Ingredient, Number> ingredientsStock = new ConcurrentHashMap<>();
     private static Map<Dish, Number> getDishesStock = new ConcurrentHashMap<>();
@@ -151,48 +150,30 @@ public class StockManagement {
 }
 
 class StockChecker extends StockManagement implements Runnable {
-    private final BlockingQueue<Dish> dishQueue;
-    private final BlockingQueue<Ingredient> ingredientQueue;
-    private final BlockingQueue<Order> orderQueue;
+    private final BlockingQueue<Dish> queue;
 
-
-    StockChecker(BlockingQueue<Dish> dishQueue, BlockingQueue<Ingredient> ingredientQueue,
-                 BlockingQueue<Order> orderQueue) {
-        this.dishQueue = dishQueue;
-        this.ingredientQueue = ingredientQueue;
-        this.orderQueue = orderQueue;
+    StockChecker(BlockingQueue<Dish> queue) {
+        this.queue = queue;
     }
 
     @Override
     public synchronized void run() {
         try {
-            while (isRestockDishesEnabled() && isRestockIngredientsEnabled()) {
-
+            while (isRestockDishesEnabled()) {
                 for (Dish dish : getDishesStock().keySet()) {
                     int quantity = getDishesStock().get(dish).intValue();
                     int restockThreshold = dish.getRestockThreshold().intValue();
 
                     if (quantity <= restockThreshold) {
-                        System.out.println("Dish Queue: Putting " + dish.getName() + " in the queue");
+                        System.out.println("Putting " + dish.getName() + " in the queue");
 
-                        dishQueue.put(dish);
-                        Thread.sleep(500);
+                        queue.put(dish);
+                        Thread.sleep(1000);
                         notifyAll();
 
                     }
-                    for (Ingredient ingredient : getIngredientsStock().keySet()) {
-                        int ingredientQty = getIngredientsStock().get(ingredient).intValue();
-                        int ingredientRestockThreshold = ingredient.getRestockThreshold().intValue();
-
-                        if (ingredientQty <= ingredientRestockThreshold) {
-                            //System.out.println("Ingredient Queue: Putting " +ingredient.getName()+ " in the queue");
-                            ingredientQueue.put(ingredient);
-                            Thread.sleep(500);
-                            notify();
-                        }
-                    }
                 }
-                Thread.currentThread().sleep(35000);
+                Thread.sleep(35000);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

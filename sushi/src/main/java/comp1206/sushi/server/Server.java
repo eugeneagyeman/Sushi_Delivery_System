@@ -31,14 +31,8 @@ public class Server implements ServerInterface {
     private static final ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
     private static Restaurant restaurant;
     private Lock taskLock = new ReentrantLock();
-    private Lock dronesLock = new ReentrantLock();
     private StockManagement stockManagement;
     private ServerComms serverComms;
-
-
-
-    private BlockingQueue<Order> orderQueue = new LinkedBlockingQueue<>(10);
-
 
 
     public Server() {
@@ -64,20 +58,13 @@ public class Server implements ServerInterface {
 
 
         loadConfiguration("Configuration.txt");
-        BlockingQueue<Dish> dishQueue = new LinkedBlockingQueue<>(10);
-        BlockingQueue<Ingredient> ingredientQueue = new LinkedBlockingQueue<>(10);
-        new Thread(new StockChecker(dishQueue,ingredientQueue,orderQueue), "Stock Checker").start();
+        BlockingQueue<Dish> serverQueue = new LinkedBlockingQueue<>(10);
+        new Thread(new StockChecker(serverQueue), "Stock Checker").start();
 
         synchronized (taskLock) {
             for (Staff staff : getStaff()) {
-                staff.setDishBlockingQueue(dishQueue);
+                staff.setDishBlockingQueue(serverQueue);
                 (new Thread(staff, staff.getName())).start();
-            }
-        }
-        synchronized (dronesLock) {
-            for(Drone drone : getDrones()) {
-                drone.setQueue(ingredientQueue,orderQueue);
-                (new Thread(drone, "Drone: "+drone.getSpeed())).start();
             }
         }
     }
@@ -373,10 +360,6 @@ public class Server implements ServerInterface {
         return orders;
     }
 
-    public BlockingQueue<Order> getOrderQueue() {
-        return orderQueue;
-    }
-
     public Order addOrder(String user) {
         for (Order existingOrder : getOrders()) {
             if (existingOrder.getUser().getName().equals(user)) {
@@ -442,7 +425,7 @@ public class Server implements ServerInterface {
             }
         }
 
-        Postcode mock = new Postcode(code,restaurant);
+        Postcode mock = new Postcode(code);
         postcodes.add(mock);
         this.notifyUpdate();
         return mock;
