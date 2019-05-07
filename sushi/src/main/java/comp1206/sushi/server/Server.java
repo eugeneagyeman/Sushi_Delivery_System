@@ -301,7 +301,7 @@ public class Server implements ServerInterface {
 
     @Override
     public Drone addDrone(Number speed) {
-        Drone mock = new Drone(speed);
+        Drone mock = new Drone(speed,getRestaurantPostcode());
         drones.add(mock);
         return mock;
     }

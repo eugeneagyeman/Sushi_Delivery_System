@@ -5,9 +5,12 @@ import comp1206.sushi.server.StockManagement;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -44,8 +47,7 @@ public class Staff extends Model implements Runnable, Serializable {
     //build dish and update key
     //TODO: Check if there is enough ingredients for restockAmount
     //TODO: Implement Fatigue Property
-    public synchronized void build(Dish dish) throws InterruptedException {
-        setStatus("Attempting to build: " + dish.getName());
+    public synchronized void build(Dish dish) throws InterruptedException, UnableToBuildException {
 
         Map<Ingredient, Number> dishrecipe = dish.getRecipe();
         boolean enoughIngredients = true;
@@ -60,7 +62,7 @@ public class Staff extends Model implements Runnable, Serializable {
                     + "\tRecipe Quantity: " + recipeQuantity + "\t"
                     + "\t Currently in Stock:" + currentIngredientAmount);
 
-            if (recipeQuantity.intValue() >= currentIngredientAmount) {
+            if (currentIngredientAmount >= recipeQuantity.intValue()) {
                 enoughIngredients = false;
             }
         }
@@ -82,6 +84,7 @@ public class Staff extends Model implements Runnable, Serializable {
             notifyUpdate();
         } else {
             System.out.println("There are not enough ingredients...\n");
+            throw new UnableToBuildException("Not enough ingredients. Wait till restock");
             //TODO: To be replaced by the drone implementation. Notify drones to check?
             /*for (Ingredient ingredient : dishrecipe.keySet())
                 StockManagement.restockIngredient(ingredient);*/
@@ -110,8 +113,9 @@ public class Staff extends Model implements Runnable, Serializable {
     }
 
     public synchronized void setStatus(String status) {
-        this.status = status;
         notifyUpdate("status", this.status, status);
+        this.status = status;
+
 
     }
 
@@ -121,17 +125,21 @@ public class Staff extends Model implements Runnable, Serializable {
 
     @Override
     public synchronized void run() {
+        Dish dishDebug = null;
 
         try {
             while (StockManagement.isRestockDishesEnabled()) {
-                if (dishBlockingQueue.peek() == null) {
+                if (dishBlockingQueue.peek() != null) {
+                    dishDebug = dishBlockingQueue.poll(10, TimeUnit.SECONDS);
+                    System.out.println(Thread.currentThread().getName() + " is attempting to build: " + dishDebug.getName());
+                    setStatus("Attempting to build: " + dishDebug.getName());
+
+
+                    build(dishDebug);
+
+                } else {
                     this.setStatus("Idle");
                     wait(3000);
-                } else {
-                    Dish attemptedDish = dishBlockingQueue.take();
-                    System.out.println(Thread.currentThread().getName() + " is attempting to build: " + attemptedDish.getName() + "\n");
-                    this.setStatus("Building: " + attemptedDish.getName());
-                    build(attemptedDish);
                 }
             }
 
@@ -140,8 +148,22 @@ public class Staff extends Model implements Runnable, Serializable {
             Thread.currentThread().interrupt();
         } catch (NullPointerException queueNotInitialised) {
             System.out.println("Empty queue...");
+
+        } catch (UnableToBuildException e) {
+            dishBlockingQueue.add(dishDebug);
+        } catch(NoSuchElementException ignored) {
+
         }
 
 
+
+    }
+
+    private class UnableToBuildException extends Exception {
+        private static final long serialVersionUID = 5387102460657662640L;
+
+        UnableToBuildException(String message) {
+            super(message);
+        }
     }
 }

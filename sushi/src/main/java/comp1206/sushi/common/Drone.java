@@ -16,16 +16,18 @@ public class Drone extends Model implements Runnable, Serializable {
 
     private String status;
 
+    private Postcode base;
     private Postcode source;
     private Postcode destination;
 
     private BlockingQueue<Ingredient> ingredientQueueInstance;
     private BlockingQueue<Order> orderQueueInstance;
 
-    public Drone(Number speed) {
+    public Drone(Number speed,Postcode restaurantBase) {
         this.setSpeed(speed);
         this.setCapacity(1);
         this.setBattery(100);
+        this.setBase(restaurantBase);
     }
 
     public Drone() {
@@ -53,6 +55,14 @@ public class Drone extends Model implements Runnable, Serializable {
     @Override
     public String getName() {
         return "Drone (" + getSpeed() + " speed)";
+    }
+
+    public Postcode getBase() {
+        return base;
+    }
+
+    public void setBase(Postcode base) {
+        this.base = base;
     }
 
     public Postcode getSource() {
@@ -101,20 +111,27 @@ public class Drone extends Model implements Runnable, Serializable {
         this.orderQueueInstance = orderQueue;
     }
 
-    public synchronized void grabIngredient(Ingredient ingredient) throws InterruptedException {
-        setStatus("In Transit: Collecting ingredient: " + ingredient.getName());
+    public synchronized void grabIngredient(Ingredient ingredient,Postcode source) throws InterruptedException {
+        setStatus("Collecting: " + ingredient.getName());
+        setSource(source);
+        setDestination(ingredient.getSupplier().getPostcode());
 
         setProgress(0);
 
         Double distance = ingredient.getSupplier().getDistance().doubleValue();
         Double speed = this.speed.doubleValue();
+
         travel(distance, speed);
-        setStatus("Destination reached: Collecting " + ingredient.getName() + "....");
-        Thread.sleep(1000);
+        setStatus("Destination reached... " + ingredient.getName() + "....");
+        Thread.sleep(500);
+        setDestination(base);
+        setSource(ingredient.getSupplier().getPostcode());
         setStatus(ingredient.getName() + " Collected. Returning to base...");
 
-        travel(distance, speed*2);
+        travel(distance,100.0);
+        //travel(distance, speed);
         StockManagement.restockIngredient(ingredient);
+        setProgress(0);
         notifyUpdate();
 
     }
@@ -174,7 +191,7 @@ public class Drone extends Model implements Runnable, Serializable {
 					wait(3000);
                 } else if (ingredientQueueInstance.peek() != null) {
                     Ingredient ingredientToCollect = ingredientQueueInstance.take();
-                    grabIngredient(ingredientToCollect);
+                    grabIngredient(ingredientToCollect,base);
                 } else if (orderQueueInstance.peek() != null) {
                     Order orderToDeliver = orderQueueInstance.take();
                     try {

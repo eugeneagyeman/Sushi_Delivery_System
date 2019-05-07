@@ -166,32 +166,33 @@ class StockChecker extends StockManagement implements Runnable {
     @Override
     public synchronized void run() {
         try {
-            while (isRestockDishesEnabled()&&isRestockIngredientsEnabled()) {
-                for(Ingredient ingredient: getIngredientsStock().keySet()) {
-                    int ingredientQty = getIngredientsStock().get(ingredient).intValue();
-                    int restockThreshold = ingredient.getRestockThreshold().intValue();
+            while (isRestockDishesEnabled() && isRestockIngredientsEnabled()) {
 
-                    if(ingredientQty <= restockThreshold) {
-                        System.out.println("Ingredient Queue: Putting " +ingredient.getName()+ " in the queue");
-                        ingredientQueue.put(ingredient);
-                        Thread.sleep(500);
-                        notifyAll();
-                    }
-                }
                 for (Dish dish : getDishesStock().keySet()) {
                     int quantity = getDishesStock().get(dish).intValue();
                     int restockThreshold = dish.getRestockThreshold().intValue();
 
                     if (quantity <= restockThreshold) {
-                        System.out.println("Putting " + dish.getName() + " in the dishQueue");
+                        System.out.println("Dish Queue: Putting " + dish.getName() + " in the queue");
 
                         dishQueue.put(dish);
-                        Thread.sleep(1000);
+                        Thread.sleep(500);
                         notifyAll();
 
                     }
+                    for (Ingredient ingredient : getIngredientsStock().keySet()) {
+                        int ingredientQty = getIngredientsStock().get(ingredient).intValue();
+                        int ingredientRestockThreshold = ingredient.getRestockThreshold().intValue();
+
+                        if (ingredientQty <= ingredientRestockThreshold) {
+                            //System.out.println("Ingredient Queue: Putting " +ingredient.getName()+ " in the queue");
+                            ingredientQueue.put(ingredient);
+                            Thread.sleep(500);
+                            notify();
+                        }
+                    }
                 }
-                Thread.sleep(35000);
+                Thread.currentThread().sleep(35000);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

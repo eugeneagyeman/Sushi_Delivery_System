@@ -104,6 +104,7 @@ public class ServerComms extends Thread{
                     Object obj = ServerComms.inputStream.readObject();
                     if(obj instanceof Order) {
                         server.getOrders().add((Order) obj);
+                        server.getOrderQueue().add((Order) obj);
                     } else if(obj instanceof User) {
                         server.getUsers().add((User) obj);
                     }
