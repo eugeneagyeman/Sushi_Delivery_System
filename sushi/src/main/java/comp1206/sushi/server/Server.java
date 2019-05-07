@@ -58,14 +58,6 @@ public class Server implements ServerInterface {
             e.printStackTrace();
         }
 
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try {
-                serverComms.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }));
-
     }
 
     private void init() throws IOException {

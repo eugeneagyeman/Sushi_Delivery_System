@@ -86,14 +86,6 @@ public class Client implements ClientInterface {
         addDrone(2);
         addDrone(3);*/
 
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try {
-                comms.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }));
-
     }
 
     public static void setUsers(ArrayList<User> users) {
