@@ -45,7 +45,7 @@ public class Client implements ClientInterface {
         postcodes.add(postcode4);
         postcodes.add(postcode5);*/
 
-        comms = new ClientComms(this,id);
+        comms = new ClientComms(this);
 
         /*Dish dish1 = new Dish("Dish 1", "Dish 1", 1, 1, 10);
         Dish dish2 = new Dish("Dish 2", "Dish 2", 2, 1, 10);
