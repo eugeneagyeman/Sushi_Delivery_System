@@ -77,9 +77,6 @@ public class Staff extends Model implements Runnable, Serializable {
             System.out.println(Thread.currentThread().getName() + " has successfully created: " + dish.getName() + "\n");
         } else {
             System.out.println("There are not enough ingredients...\n");
-
-            for (Ingredient ingredient : dishrecipe.keySet())
-                StockManagement.restockIngredient(ingredient);
         }
     }
 
@@ -130,6 +127,7 @@ public class Staff extends Model implements Runnable, Serializable {
 
 
         } catch (InterruptedException e) {
+            System.out.println(Thread.currentThread().getName()+" thread interrupted");
             Thread.currentThread().interrupt();
         } catch (NullPointerException queueNotInitialised) {
             System.out.println("Queue not initialised yet");

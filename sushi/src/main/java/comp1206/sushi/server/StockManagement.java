@@ -2,6 +2,7 @@ package comp1206.sushi.server;
 
 import comp1206.sushi.common.Dish;
 import comp1206.sushi.common.Ingredient;
+import comp1206.sushi.common.Order;
 
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
@@ -14,7 +15,7 @@ import static java.lang.Integer.valueOf;
 public class StockManagement {
     private final static Lock dishesLock = new ReentrantLock(true);
     private final static Lock ingredientsLock = new ReentrantLock(true);
-    static boolean restockIngredientsEnabled;
+    static boolean restockIngredientsEnabled = true;
     static boolean restockDishesEnabled = true;
     private static Map<Ingredient, Number> ingredientsStock = new ConcurrentHashMap<>();
     private static Map<Dish, Number> getDishesStock = new ConcurrentHashMap<>();
@@ -164,7 +165,7 @@ class StockChecker extends StockManagement implements Runnable {
                     int quantity = getDishesStock().get(dish).intValue();
                     int restockThreshold = dish.getRestockThreshold().intValue();
 
-                    if (quantity <= restockThreshold) {
+                    if (quantity < restockThreshold) {
                         System.out.println("Putting " + dish.getName() + " in the queue");
 
                         queue.put(dish);
@@ -173,9 +174,43 @@ class StockChecker extends StockManagement implements Runnable {
 
                     }
                 }
+                //Thread.sleep(6000);
                 Thread.sleep(35000);
             }
         } catch (InterruptedException e) {
+            System.out.println(Thread.currentThread().getName()+" thread interrupted");
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+
+class IngredientChecker extends StockManagement implements Runnable {
+    private final BlockingQueue<Ingredient> ingredientQueue;
+    private final BlockingQueue<Order> orderQueue;
+
+    IngredientChecker(BlockingQueue<Ingredient> queue, BlockingQueue<Order> orders) {
+        this.ingredientQueue = queue;
+        this.orderQueue = orders;
+    }
+    @Override
+    public synchronized void run() {
+        try {
+            while(isRestockIngredientsEnabled()) {
+                for(Ingredient ingredient: getIngredientsStock().keySet()) {
+                    int quantity = getIngredientsStock().get(ingredient).intValue();
+                    int restockThreshold = ingredient.getRestockThreshold().intValue();
+
+                    if(quantity < restockThreshold) {
+                        System.out.println("Ingredient Queue: Adding "+ingredient.getName());
+                        ingredientQueue.put(ingredient);
+                        Thread.sleep(1000);
+                        notifyAll();
+                    }
+                }
+                Thread.sleep(60000);
+            }
+        } catch (InterruptedException e) {
+            System.out.println(Thread.currentThread().getName()+" thread interrupted");
             Thread.currentThread().interrupt();
         }
     }

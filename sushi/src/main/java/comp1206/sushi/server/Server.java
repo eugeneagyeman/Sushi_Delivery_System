@@ -30,9 +30,19 @@ public class Server implements ServerInterface {
     private static final ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
     private static final ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
     private static Restaurant restaurant;
-    private Lock taskLock = new ReentrantLock();
+    private final Lock taskLock = new ReentrantLock();
+    private final Lock dronesLock = new ReentrantLock();
     private StockManagement stockManagement;
     private ServerComms serverComms;
+
+
+
+    private BlockingQueue<Order> orderQueue = new LinkedBlockingQueue<>(10);
+    private BlockingQueue<Dish> dishQueue = new LinkedBlockingQueue<>(10);
+    private BlockingQueue<Ingredient> ingredientQueue = new LinkedBlockingQueue<>(10);
+
+
+
 
 
     public Server() {
@@ -58,13 +68,19 @@ public class Server implements ServerInterface {
 
 
         loadConfiguration("Configuration.txt");
-        BlockingQueue<Dish> serverQueue = new LinkedBlockingQueue<>(10);
-        new Thread(new StockChecker(serverQueue), "Stock Checker").start();
+        new Thread(new StockChecker(dishQueue), "Stock Checker").start();
+        new Thread(new IngredientChecker(ingredientQueue,orderQueue), "Ingredient Checker").start();
 
         synchronized (taskLock) {
             for (Staff staff : getStaff()) {
-                staff.setDishBlockingQueue(serverQueue);
+                staff.setDishBlockingQueue(dishQueue);
                 (new Thread(staff, staff.getName())).start();
+            }
+        }
+        synchronized (dronesLock) {
+            for(Drone drone : getDrones()) {
+                drone.setQueue(ingredientQueue,orderQueue);
+                (new Thread(drone, "Drone: "+drone.getSpeed())).start();
             }
         }
     }
@@ -360,6 +376,10 @@ public class Server implements ServerInterface {
         return orders;
     }
 
+    public BlockingQueue<Order> getOrderQueue() {
+        return orderQueue;
+    }
+
     public Order addOrder(String user) {
         for (Order existingOrder : getOrders()) {
             if (existingOrder.getUser().getName().equals(user)) {
@@ -425,7 +445,7 @@ public class Server implements ServerInterface {
             }
         }
 
-        Postcode mock = new Postcode(code);
+        Postcode mock = new Postcode(code,restaurant);
         postcodes.add(mock);
         this.notifyUpdate();
         return mock;

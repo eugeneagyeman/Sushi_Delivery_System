@@ -1,11 +1,8 @@
 package comp1206.sushi.Communication;
-
-import com.esotericsoftware.kryonet.Connection;
-import com.esotericsoftware.kryonet.Listener;
-import comp1206.sushi.client.Client;
 import comp1206.sushi.common.*;
 import comp1206.sushi.server.Server;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -13,9 +10,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
+
 
 public class ServerComms extends Thread{
     private ServerSocket serverSocket;
@@ -108,6 +103,8 @@ public class ServerComms extends Thread{
                     } else if(obj instanceof User) {
                         server.getUsers().add((User) obj);
                     }
+                } catch (EOFException ignored) {
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 } catch (ClassNotFoundException e) {

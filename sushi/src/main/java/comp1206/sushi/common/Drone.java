@@ -197,6 +197,7 @@ public class Drone extends Model implements Runnable, Serializable {
                     try {
                         grabOrder(orderToDeliver);
                     } catch (UnableToDeliverException e) {
+                        System.out.println();
                         orderQueueInstance.add(orderToDeliver);
                     }
                 }
