@@ -65,8 +65,6 @@ public class ClientComms extends Thread {
     public void run() {
         while(recevingMessages) {
             try {
-
-
                 Object obj = clientInputStream.readObject();
                 if(obj instanceof Dish) {
                     client.addDish((Dish) obj);

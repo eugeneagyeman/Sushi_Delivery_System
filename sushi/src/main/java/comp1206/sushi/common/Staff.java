@@ -42,9 +42,12 @@ public class Staff extends Model implements Runnable, Serializable {
     //if so then deduct recipe amount from quantity amount.
     //if not then do other dishes, or if not then wait
     //build dish and update key
+    //TODO: Check if there is enough ingredients for restockAmount
+    //TODO: Implement Fatigue Property
     public synchronized void build(Dish dish) throws InterruptedException {
-        Map<Ingredient, Number> dishrecipe = dish.getRecipe();
+        setStatus("Attempting to build: " + dish.getName());
 
+        Map<Ingredient, Number> dishrecipe = dish.getRecipe();
         boolean enoughIngredients = true;
 
         Map<Ingredient, Number> ingredientsStock = StockManagement.getIngredientsStock();
@@ -63,6 +66,7 @@ public class Staff extends Model implements Runnable, Serializable {
         }
 
         if (enoughIngredients) {
+            setStatus("Building: "+dish.getName());
             int randomBuildTime = ThreadLocalRandom.current().nextInt(60000 - 20000) + 20000;
             Thread.sleep(randomBuildTime);
 
@@ -75,13 +79,15 @@ public class Staff extends Model implements Runnable, Serializable {
             dishesStock.replace(dish, dishQuantity + 1);
 
             System.out.println(Thread.currentThread().getName() + " has successfully created: " + dish.getName() + "\n");
+            notifyUpdate();
         } else {
             System.out.println("There are not enough ingredients...\n");
-
-            for (Ingredient ingredient : dishrecipe.keySet())
-                StockManagement.restockIngredient(ingredient);
+            //TODO: To be replaced by the drone implementation. Notify drones to check?
+            /*for (Ingredient ingredient : dishrecipe.keySet())
+                StockManagement.restockIngredient(ingredient);*/
         }
     }
+
 
     public String getName() {
         return name;
@@ -104,8 +110,9 @@ public class Staff extends Model implements Runnable, Serializable {
     }
 
     public synchronized void setStatus(String status) {
-        notifyUpdate("status", this.status, status);
         this.status = status;
+        notifyUpdate("status", this.status, status);
+
     }
 
     public synchronized void setDishBlockingQueue(BlockingQueue<Dish> dishBlockingQueue) {
@@ -132,7 +139,7 @@ public class Staff extends Model implements Runnable, Serializable {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (NullPointerException queueNotInitialised) {
-            System.out.println("Queue not initialised yet");
+            System.out.println("Empty queue...");
         }
 
 

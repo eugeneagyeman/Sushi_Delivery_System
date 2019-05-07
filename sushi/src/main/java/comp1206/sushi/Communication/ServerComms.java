@@ -3,7 +3,6 @@ package comp1206.sushi.Communication;
 import comp1206.sushi.common.*;
 import comp1206.sushi.server.Server;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -13,6 +12,7 @@ import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 
 public class ServerComms extends Thread {
+    static ArrayList<ServerComms> activeClients = new ArrayList<>();
     private ServerSocket serverSocket;
     protected ObjectOutputStream outputStream;
     protected static ObjectInputStream inputStream;
@@ -27,6 +27,10 @@ public class ServerComms extends Thread {
         this.start();
     }
 
+    public static ArrayList<ServerComms> getActiveClients() {
+        return activeClients;
+    }
+
     public void run() {
         this.clientListener.setRecevingMessages(false);
         this.clientListener.start();
@@ -38,7 +42,7 @@ public class ServerComms extends Thread {
                 Socket serverSocket = this.serverSocket.accept();
                 this.outputStream = new ObjectOutputStream(serverSocket.getOutputStream());
                 this.inputStream = new ObjectInputStream(serverSocket.getInputStream());
-                clientListener.getActiveClients().add(this);
+                getActiveClients().add(this);
 
                 for (Dish dishes : server.getDishes()) {
                     outputStream.writeObject(dishes);
@@ -68,7 +72,7 @@ public class ServerComms extends Thread {
     public void sendMsg(Object obj, boolean sendToAll) throws IOException {
         outputStream.writeObject(obj);
         if (sendToAll) {
-            for (ServerComms connectedClients : clientListener.getActiveClients()) {
+            for (ServerComms connectedClients : getActiveClients()) {
                 connectedClients.getOutputStream().writeObject(obj);
             }
         }
@@ -78,7 +82,7 @@ public class ServerComms extends Thread {
         return outputStream;
     }
 
-    public ObjectInputStream getInputStream() {
+    public static ObjectInputStream getInputStream() {
         return inputStream;
     }
 
@@ -87,12 +91,9 @@ public class ServerComms extends Thread {
         outputStream.close();
         inputStream.close();
         serverSocket.close();
-
-
     }
 
     protected class ClientListener extends Thread {
-        ArrayList<ServerComms> activeClients = new ArrayList<>();
         boolean recevingMessages = true;
 
         ClientListener() {
@@ -105,34 +106,27 @@ public class ServerComms extends Thread {
         }
 
 
-        public ArrayList<ServerComms> getActiveClients() {
-            return activeClients;
-        }
-
         public void run() {
             while (recevingMessages) {
                 try {
-                    receiveMsg();
+                    Object obj = ServerComms.getInputStream().readObject();
+                    if (obj instanceof Order) {
+                        server.getOrders().add((Order) obj);
+                        server.getOrderQueue().add((Order) obj);
+                    } else if (obj instanceof User) {
+                        server.getUsers().add((User) obj);
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 } catch (ClassNotFoundException e) {
                     e.printStackTrace();
+                } catch (NullPointerException e) {
+
                 }
             }
         }
 
-        void receiveMsg() throws IOException, ClassNotFoundException {
-            try {
-                Object obj = ServerComms.inputStream.readObject();
-                if (obj instanceof Order) {
-                    server.getOrders().add((Order) obj);
-                } else if (obj instanceof User) {
-                    server.getUsers().add((User) obj);
-                }
-            } catch (EOFException ignored) {
 
-            }
-        }
 
     }
 

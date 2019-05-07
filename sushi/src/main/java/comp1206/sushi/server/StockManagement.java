@@ -2,6 +2,7 @@ package comp1206.sushi.server;
 
 import comp1206.sushi.common.Dish;
 import comp1206.sushi.common.Ingredient;
+import comp1206.sushi.common.Order;
 
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
@@ -14,7 +15,7 @@ import static java.lang.Integer.valueOf;
 public class StockManagement {
     private final static Lock dishesLock = new ReentrantLock(true);
     private final static Lock ingredientsLock = new ReentrantLock(true);
-    static boolean restockIngredientsEnabled;
+    static boolean restockIngredientsEnabled = true;
     static boolean restockDishesEnabled = true;
     private static Map<Ingredient, Number> ingredientsStock = new ConcurrentHashMap<>();
     private static Map<Dish, Number> getDishesStock = new ConcurrentHashMap<>();
@@ -150,24 +151,41 @@ public class StockManagement {
 }
 
 class StockChecker extends StockManagement implements Runnable {
-    private final BlockingQueue<Dish> queue;
+    private final BlockingQueue<Dish> dishQueue;
+    private final BlockingQueue<Ingredient> ingredientQueue;
+    private final BlockingQueue<Order> orderQueue;
 
-    StockChecker(BlockingQueue<Dish> queue) {
-        this.queue = queue;
+
+    StockChecker(BlockingQueue<Dish> dishQueue, BlockingQueue<Ingredient> ingredientQueue,
+                 BlockingQueue<Order> orderQueue) {
+        this.dishQueue = dishQueue;
+        this.ingredientQueue = ingredientQueue;
+        this.orderQueue = orderQueue;
     }
 
     @Override
     public synchronized void run() {
         try {
-            while (isRestockDishesEnabled()) {
+            while (isRestockDishesEnabled()&&isRestockIngredientsEnabled()) {
+                for(Ingredient ingredient: getIngredientsStock().keySet()) {
+                    int ingredientQty = getIngredientsStock().get(ingredient).intValue();
+                    int restockThreshold = ingredient.getRestockThreshold().intValue();
+
+                    if(ingredientQty <= restockThreshold) {
+                        System.out.println("Ingredient Queue: Putting " +ingredient.getName()+ " in the queue");
+                        ingredientQueue.put(ingredient);
+                        Thread.sleep(500);
+                        notifyAll();
+                    }
+                }
                 for (Dish dish : getDishesStock().keySet()) {
                     int quantity = getDishesStock().get(dish).intValue();
                     int restockThreshold = dish.getRestockThreshold().intValue();
 
                     if (quantity <= restockThreshold) {
-                        System.out.println("Putting " + dish.getName() + " in the queue");
+                        System.out.println("Putting " + dish.getName() + " in the dishQueue");
 
-                        queue.put(dish);
+                        dishQueue.put(dish);
                         Thread.sleep(1000);
                         notifyAll();
 
