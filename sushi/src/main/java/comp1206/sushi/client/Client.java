@@ -273,7 +273,7 @@ public class Client implements ClientInterface {
     }
 
     public List<User> getUsers() {
-        return this.users;
+        return users;
     }
 
 //	public void notifyUpdate(UpdateEvent updateEvent){

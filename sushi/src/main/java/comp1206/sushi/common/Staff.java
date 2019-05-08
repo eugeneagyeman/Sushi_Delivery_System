@@ -1,11 +1,9 @@
 package comp1206.sushi.common;
 
-import comp1206.sushi.server.StockManagement;
+import comp1206.sushi.StockManagement.StockManagement;
 
 import java.io.Serializable;
-import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.Lock;
@@ -26,7 +24,6 @@ public class Staff extends Model implements Runnable, Serializable {
         this.setName(name);
         this.setFatigue(0);
         this.setStatus("Idle");
-
     }
 
     public Staff() {
@@ -42,7 +39,7 @@ public class Staff extends Model implements Runnable, Serializable {
     //if so then deduct recipe amount from quantity amount.
     //if not then do other dishes, or if not then wait
     //build dish and update key
-    public synchronized void build(Dish dish) throws InterruptedException {
+    public void build(Dish dish) throws InterruptedException {
         Map<Ingredient, Number> dishrecipe = dish.getRecipe();
 
         boolean enoughIngredients = true;
@@ -100,39 +97,32 @@ public class Staff extends Model implements Runnable, Serializable {
         return status;
     }
 
-    public synchronized void setStatus(String status) {
+    public void setStatus(String status) {
         notifyUpdate("status", this.status, status);
         this.status = status;
     }
 
-    public synchronized void setDishBlockingQueue(BlockingQueue<Dish> dishBlockingQueue) {
+    public void setDishBlockingQueue(BlockingQueue<Dish> dishBlockingQueue) {
         this.dishBlockingQueue = dishBlockingQueue;
     }
 
     @Override
-    public synchronized void run() {
-
+    public void run() {
         try {
+            Thread.sleep(300);
             while (StockManagement.isRestockDishesEnabled()) {
-                if (dishBlockingQueue.peek() == null) {
-                    this.setStatus("Idle");
-                    wait(3000);
-                } else {
-                    Dish attemptedDish = dishBlockingQueue.take();
-                    System.out.println(Thread.currentThread().getName() + " is attempting to build: " + attemptedDish.getName() + "\n");
-                    this.setStatus("Building: " + attemptedDish.getName());
-                    build(attemptedDish);
+                if (dishBlockingQueue.isEmpty()) {
+                    setStatus("Idle");
                 }
+                Dish toBuild = dishBlockingQueue.take();
+                System.out.println(Thread.currentThread().getName() + " is attempting to build: " + toBuild.getName() + "\n");
+                this.setStatus("Building: " + toBuild.getName());
+                build(toBuild);
             }
-
-
         } catch (InterruptedException e) {
-            System.out.println(Thread.currentThread().getName()+" thread interrupted");
-            Thread.currentThread().interrupt();
-        } catch (NullPointerException queueNotInitialised) {
-            System.out.println("Queue not initialised yet");
+            e.printStackTrace();
+        } catch (NullPointerException uninitialised) {
+
         }
-
-
     }
 }

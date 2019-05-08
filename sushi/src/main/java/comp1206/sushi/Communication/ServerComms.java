@@ -23,7 +23,7 @@ public class ServerComms extends Thread{
     ClientListener clientListener;
     public ServerComms(Server aServer) throws IOException {
         serverSocket = new ServerSocket(3000);
-        this.server = aServer;
+        server = aServer;
         clientListener = new ClientListener();
         this.start();
     }
@@ -37,7 +37,7 @@ public class ServerComms extends Thread{
 
                 Socket serverSocket = this.serverSocket.accept();
                 this.outputStream = new ObjectOutputStream(serverSocket.getOutputStream());
-                this.inputStream = new ObjectInputStream(serverSocket.getInputStream());
+                inputStream = new ObjectInputStream(serverSocket.getInputStream());
                 clientListener.getActiveClients().add(this);
 
                 for(Dish dishes: server.getDishes()) {
@@ -77,7 +77,7 @@ public class ServerComms extends Thread{
         return outputStream;
     }
 
-    public ObjectInputStream getInputStream() {
+    public static ObjectInputStream getInputStream() {
         return inputStream;
     }
 
@@ -96,7 +96,7 @@ public class ServerComms extends Thread{
 
         void receiveMsg(){
                 try {
-                    Object obj = ServerComms.inputStream.readObject();
+                    Object obj = ServerComms.getInputStream().readObject();
                     if(obj instanceof Order) {
                         server.getOrders().add((Order) obj);
                         server.getOrderQueue().add((Order) obj);

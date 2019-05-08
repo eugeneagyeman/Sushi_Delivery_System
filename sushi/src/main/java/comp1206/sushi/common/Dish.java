@@ -1,11 +1,10 @@
 package comp1206.sushi.common;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
-public final class Dish extends Model implements Serializable {
-	public static final long serialVersionUID = 7154708378782323147L;
+public final class Dish extends Model {
+
 	private String name;
 	private String description;
 	private Number price;
@@ -22,10 +21,6 @@ public final class Dish extends Model implements Serializable {
 		this.restockThreshold = restockThreshold;
 		this.restockAmount = restockAmount;
 		this.recipe = new HashMap<Ingredient,Number>();
-	}
-
-	public Dish() {
-
 	}
 
 	public synchronized String getName() {
@@ -69,7 +64,7 @@ public final class Dish extends Model implements Serializable {
 	}
 
 	public synchronized Number getRestockThreshold() {
-		return restockThreshold;
+		return this.restockThreshold;
 	}
 
 	public synchronized Number getRestockAmount() {

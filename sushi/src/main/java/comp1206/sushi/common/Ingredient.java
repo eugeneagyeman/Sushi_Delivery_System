@@ -27,51 +27,51 @@ public class Ingredient extends Model implements Serializable {
 
 	}
 
-	public synchronized String getName() {
+	public String getName() {
 		return name;
 	}
 
-	public synchronized void setName(String name) {
+	public  void setName(String name) {
 		this.name = name;
 	}
 
-	public synchronized String getUnit() {
+	public String getUnit() {
 		return unit;
 	}
 
-	public synchronized void setUnit(String unit) {
+	public  void setUnit(String unit) {
 		this.unit = unit;
 	}
 
-	public synchronized Supplier getSupplier() {
+	public Supplier getSupplier() {
 		return supplier;
 	}
 
-	public synchronized void setSupplier(Supplier supplier) {
+	public  void setSupplier(Supplier supplier) {
 		this.supplier = supplier;
 	}
 
-	public synchronized Number getRestockThreshold() {
+	public Number getRestockThreshold() {
 		return restockThreshold;
 	}
 
-	public synchronized void setRestockThreshold(Number restockThreshold) {
+	public  void setRestockThreshold(Number restockThreshold) {
 		this.restockThreshold = restockThreshold;
 	}
 
-	public synchronized Number getRestockAmount() {
+	public Number getRestockAmount() {
 		return restockAmount;
 	}
 
-	public synchronized void setRestockAmount(Number restockAmount) {
+	public  void setRestockAmount(Number restockAmount) {
 		this.restockAmount = restockAmount;
 	}
 
-	public synchronized Number getWeight() {
+	public Number getWeight() {
 		return weight;
 	}
 
-	public synchronized void setWeight(Number weight) {
+	public  void setWeight(Number weight) {
 		this.weight = weight;
 	}
 }

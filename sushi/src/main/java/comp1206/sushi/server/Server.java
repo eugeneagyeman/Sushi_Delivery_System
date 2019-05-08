@@ -1,7 +1,9 @@
 package comp1206.sushi.server;
 
-import comp1206.sushi.Communication.ClientComms;
 import comp1206.sushi.Communication.ServerComms;
+import comp1206.sushi.StockManagement.IngredientChecker;
+import comp1206.sushi.StockManagement.StockChecker;
+import comp1206.sushi.StockManagement.StockManagement;
 import comp1206.sushi.common.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,9 +39,9 @@ public class Server implements ServerInterface {
 
 
 
-    private BlockingQueue<Order> orderQueue = new LinkedBlockingQueue<>(10);
-    private BlockingQueue<Dish> dishQueue = new LinkedBlockingQueue<>(10);
-    private BlockingQueue<Ingredient> ingredientQueue = new LinkedBlockingQueue<>(10);
+    private BlockingQueue<Order> orderQueue;
+    private BlockingQueue<Dish> dishQueue;
+    private BlockingQueue<Ingredient> ingredientQueue;
 
 
 
@@ -47,15 +49,6 @@ public class Server implements ServerInterface {
 
     public Server() {
         logger.info("Starting up server...");
-        try {
-            serverComms = new ServerComms(this);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        stockManagement = new StockManagement();
-        Postcode restaurantPostcode = new Postcode("SO17 1BJ");
-        restaurant = new Restaurant("Mock Restaurant", restaurantPostcode);
-
         try {
             init();
         } catch (IOException e) {
@@ -65,24 +58,27 @@ public class Server implements ServerInterface {
     }
 
     private void init() throws IOException {
-
-
+        serverComms = new ServerComms(this);
+        stockManagement = new StockManagement();
+        Postcode restaurantPostcode = new Postcode("SO17 1BJ");
+        restaurant = new Restaurant("Mock Restaurant", restaurantPostcode);
+        orderQueue = new LinkedBlockingQueue<>(10);
+        dishQueue = new LinkedBlockingQueue<>(10);
+        ingredientQueue = new LinkedBlockingQueue<>(10);
         loadConfiguration("Configuration.txt");
         new Thread(new StockChecker(dishQueue), "Stock Checker").start();
         new Thread(new IngredientChecker(ingredientQueue,orderQueue), "Ingredient Checker").start();
 
-        synchronized (taskLock) {
             for (Staff staff : getStaff()) {
                 staff.setDishBlockingQueue(dishQueue);
                 (new Thread(staff, staff.getName())).start();
+
             }
-        }
-        synchronized (dronesLock) {
+
             for(Drone drone : getDrones()) {
                 drone.setQueue(ingredientQueue,orderQueue);
                 (new Thread(drone, "Drone: "+drone.getSpeed())).start();
             }
-        }
     }
 
     //Restaurant Details
@@ -118,7 +114,7 @@ public class Server implements ServerInterface {
         }
 
         Dish newDish = new Dish(name, description, price, restockThreshold, restockAmount);
-        stockManagement.getDishesStock().put(newDish, 0);
+        StockManagement.getDishesStock().put(newDish, 0);
         try {
             serverComms.sendMsg(newDish,true);
         } catch (IOException e) {
@@ -136,7 +132,7 @@ public class Server implements ServerInterface {
                 return existingDishes;
             }
         }
-        stockManagement.getDishesStock().put(dishToAdd,0);
+        StockManagement.getDishesStock().put(dishToAdd,0);
         this.notifyUpdate();
         return dishToAdd;
     }
@@ -149,17 +145,17 @@ public class Server implements ServerInterface {
 
     @Override
     public Map<Dish, Number> getDishStockLevels() {
-        return stockManagement.getDishesStock();
+        return StockManagement.getDishesStock();
     }
 
     @Override
     public void setRestockingIngredientsEnabled(boolean enabled) {
-        stockManagement.setRestockIngredientsEnabled(enabled);
+        StockManagement.setRestockIngredientsEnabled(enabled);
     }
 
     @Override
     public void setRestockingDishesEnabled(boolean enabled) {
-        stockManagement.setRestockDishesEnabled(enabled);
+        StockManagement.setRestockDishesEnabled(enabled);
     }
 
     @Override
@@ -209,16 +205,16 @@ public class Server implements ServerInterface {
 
     @Override
     public void setStock(Dish dish, Number stock) {
-        Number oldValue = stockManagement.getDishesStock().get(dish);
-        stockManagement.getDishesStock().replace(dish, oldValue.intValue(), stock.intValue());
+        Number oldValue = StockManagement.getDishesStock().get(dish);
+        StockManagement.getDishesStock().replace(dish, oldValue.intValue(), stock.intValue());
         this.notifyUpdate();
     }
 
     //Ingredients
     @Override
     public void setStock(Ingredient ingredient, Number stock) {
-        Number oldValue = stockManagement.getDishesStock().get(ingredient);
-        stockManagement.getIngredientsStock().replace(ingredient, oldValue.intValue(), stock.intValue());
+        Number oldValue = StockManagement.getDishesStock().get(ingredient);
+        StockManagement.getIngredientsStock().replace(ingredient, oldValue.intValue(), stock.intValue());
         this.notifyUpdate();
     }
 
@@ -238,20 +234,20 @@ public class Server implements ServerInterface {
             }
         }
         Ingredient mockIngredient = new Ingredient(name, unit, supplier, restockThreshold, restockAmount, weight);
-        stockManagement.getIngredientsStock().put(mockIngredient, 0);
+        StockManagement.getIngredientsStock().put(mockIngredient, 0);
         this.notifyUpdate();
         return mockIngredient;
     }
 
     @Override
     public void removeIngredient(Ingredient ingredient) {
-        stockManagement.getIngredientsStock().remove(ingredient);
+        StockManagement.getIngredientsStock().remove(ingredient);
         this.notifyUpdate();
     }
 
     @Override
     public Map<Ingredient, Number> getIngredientStockLevels() {
-        return stockManagement.getIngredientsStock();
+        return StockManagement.getIngredientsStock();
     }
 
     @Override

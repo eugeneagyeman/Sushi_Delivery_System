@@ -1,4 +1,4 @@
-package comp1206.sushi.server;
+package comp1206.sushi.StockManagement;
 
 import comp1206.sushi.common.Dish;
 import comp1206.sushi.common.Ingredient;
@@ -24,7 +24,6 @@ public class StockManagement {
 
     public static Map<Ingredient, Number> getIngredientsStock() {
         ingredientsLock.tryLock();
-
         try {
             return ingredientsStock;
         } finally {
@@ -133,7 +132,7 @@ public class StockManagement {
         }
     }
 
-    void dishIngredientFinder(String itemName, String itemQuantity) {
+    public void dishIngredientFinder(String itemName, String itemQuantity) {
         for (Dish dish : getDishes()) {
             if (dish.getName().equals(itemName)) {
                 StockManagement.getDishesStock().replace(dish, valueOf(itemQuantity));
@@ -148,70 +147,4 @@ public class StockManagement {
     }
 
 
-}
-
-class StockChecker extends StockManagement implements Runnable {
-    private final BlockingQueue<Dish> queue;
-
-    StockChecker(BlockingQueue<Dish> queue) {
-        this.queue = queue;
-    }
-
-    @Override
-    public synchronized void run() {
-        try {
-            while (isRestockDishesEnabled()) {
-                for (Dish dish : getDishesStock().keySet()) {
-                    int quantity = getDishesStock().get(dish).intValue();
-                    int restockThreshold = dish.getRestockThreshold().intValue();
-
-                    if (quantity < restockThreshold) {
-                        System.out.println("Putting " + dish.getName() + " in the queue");
-
-                        queue.put(dish);
-                        Thread.sleep(1000);
-                        notifyAll();
-
-                    }
-                }
-                //Thread.sleep(6000);
-                Thread.sleep(35000);
-            }
-        } catch (InterruptedException e) {
-            System.out.println(Thread.currentThread().getName()+" thread interrupted");
-            Thread.currentThread().interrupt();
-        }
-    }
-}
-
-class IngredientChecker extends StockManagement implements Runnable {
-    private final BlockingQueue<Ingredient> ingredientQueue;
-    private final BlockingQueue<Order> orderQueue;
-
-    IngredientChecker(BlockingQueue<Ingredient> queue, BlockingQueue<Order> orders) {
-        this.ingredientQueue = queue;
-        this.orderQueue = orders;
-    }
-    @Override
-    public synchronized void run() {
-        try {
-            while(isRestockIngredientsEnabled()) {
-                for(Ingredient ingredient: getIngredientsStock().keySet()) {
-                    int quantity = getIngredientsStock().get(ingredient).intValue();
-                    int restockThreshold = ingredient.getRestockThreshold().intValue();
-
-                    if(quantity < restockThreshold) {
-                        System.out.println("Ingredient Queue: Adding "+ingredient.getName());
-                        ingredientQueue.put(ingredient);
-                        Thread.sleep(1000);
-                        notifyAll();
-                    }
-                }
-                Thread.sleep(60000);
-            }
-        } catch (InterruptedException e) {
-            System.out.println(Thread.currentThread().getName()+" thread interrupted");
-            Thread.currentThread().interrupt();
-        }
-    }
 }

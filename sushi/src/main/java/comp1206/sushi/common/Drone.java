@@ -1,6 +1,6 @@
 package comp1206.sushi.common;
 
-import comp1206.sushi.server.StockManagement;
+import comp1206.sushi.StockManagement.StockManagement;
 
 import java.io.Serializable;
 import java.util.Map;
@@ -133,6 +133,7 @@ public class Drone extends Model implements Runnable, Serializable {
         StockManagement.restockIngredient(ingredient);
         setProgress(0);
         notifyUpdate();
+        notifyAll();
 
     }
 
@@ -204,6 +205,8 @@ public class Drone extends Model implements Runnable, Serializable {
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
+        } catch (NullPointerException notinitiliased) {
+
         }
 
     }

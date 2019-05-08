@@ -1,24 +1,14 @@
 package comp1206.sushi.Communication;
 
-import com.esotericsoftware.kryo.KryoException;
-import com.esotericsoftware.kryonet.Connection;
-import com.esotericsoftware.kryonet.Listener;
 import comp1206.sushi.client.Client;
 import comp1206.sushi.common.Dish;
-import comp1206.sushi.server.Server;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
 
 import comp1206.sushi.common.*;
-import comp1206.sushi.server.StockManagement;
 
 
 public class ClientComms extends Thread {
