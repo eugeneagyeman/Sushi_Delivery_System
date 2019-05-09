@@ -12,7 +12,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class Staff extends Model implements Runnable, Serializable {
     public static final long serialVersionUID = 1755448731277423394L;
-    private final static Lock dishesLock = new ReentrantLock(true);
+    private final static Lock ingredientsLock = new ReentrantLock(true);
     private String name;
     private String status;
     private Number fatigue;
@@ -40,12 +40,16 @@ public class Staff extends Model implements Runnable, Serializable {
     //if not then do other dishes, or if not then wait
     //build dish and update key
     public void build(Dish dish) throws InterruptedException {
+        //synchronized (dish) {
         Map<Ingredient, Number> dishrecipe = dish.getRecipe();
-
         boolean enoughIngredients = true;
+
+
+        ingredientsLock.lock();
 
         Map<Ingredient, Number> ingredientsStock = StockManagement.getIngredientsStock();
         for (Map.Entry<Ingredient, Number> entry : dishrecipe.entrySet()) {
+
             Ingredient currentIngredient = entry.getKey();
             Number recipeQuantity = entry.getValue();
             int currentIngredientAmount = ingredientsStock.get(currentIngredient).intValue();
@@ -56,16 +60,19 @@ public class Staff extends Model implements Runnable, Serializable {
 
             if (recipeQuantity.intValue() >= currentIngredientAmount) {
                 enoughIngredients = false;
+            } else {
+                dishrecipe.forEach((key, value) -> {
+                    ingredientsStock.replace(key, ingredientsStock.get(key).intValue() - value.intValue());
+                });
             }
         }
 
+        ingredientsLock.unlock();
         if (enoughIngredients) {
+
+
             int randomBuildTime = ThreadLocalRandom.current().nextInt(60000 - 20000) + 20000;
             Thread.sleep(randomBuildTime);
-
-            dishrecipe.forEach((key, value) -> {
-                ingredientsStock.replace(key, ingredientsStock.get(key).intValue() - value.intValue());
-            });
 
             Map<Dish, Number> dishesStock = StockManagement.getDishesStock();
             int dishQuantity = dishesStock.get(dish).intValue();
@@ -75,6 +82,7 @@ public class Staff extends Model implements Runnable, Serializable {
         } else {
             System.out.println("There are not enough ingredients...\n");
         }
+        //}
     }
 
     public String getName() {
@@ -113,11 +121,13 @@ public class Staff extends Model implements Runnable, Serializable {
             while (StockManagement.isRestockDishesEnabled()) {
                 if (dishBlockingQueue.isEmpty()) {
                     setStatus("Idle");
+                    //wait();
+                } else {
+                    Dish toBuild = dishBlockingQueue.take();
+                    System.out.println(Thread.currentThread().getName() + " is attempting to build: " + toBuild.getName() + "\n");
+                    this.setStatus("Building: " + toBuild.getName());
+                    build(toBuild);
                 }
-                Dish toBuild = dishBlockingQueue.take();
-                System.out.println(Thread.currentThread().getName() + " is attempting to build: " + toBuild.getName() + "\n");
-                this.setStatus("Building: " + toBuild.getName());
-                build(toBuild);
             }
         } catch (InterruptedException e) {
             e.printStackTrace();

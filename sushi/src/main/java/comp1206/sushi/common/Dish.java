@@ -23,7 +23,7 @@ public final class Dish extends Model {
 		this.recipe = new HashMap<Ingredient,Number>();
 	}
 
-	public synchronized String getName() {
+	public  String getName() {
 		return name;
 	}
 
@@ -31,7 +31,7 @@ public final class Dish extends Model {
 		this.name = name;
 	}
 
-	public synchronized String getDescription() {
+	public  String getDescription() {
 		return description;
 	}
 
@@ -39,7 +39,7 @@ public final class Dish extends Model {
 		this.description = description;
 	}
 
-	public synchronized Number getPrice() {
+	public  Number getPrice() {
 		return price;
 	}
 
@@ -47,7 +47,7 @@ public final class Dish extends Model {
 		this.price = price;
 	}
 
-	public synchronized Map <Ingredient,Number> getRecipe() {
+	public  Map <Ingredient,Number> getRecipe() {
 		return recipe;
 	}
 
@@ -63,11 +63,11 @@ public final class Dish extends Model {
 		this.restockAmount = restockAmount;
 	}
 
-	public synchronized Number getRestockThreshold() {
+	public  Number getRestockThreshold() {
 		return this.restockThreshold;
 	}
 
-	public synchronized Number getRestockAmount() {
+	public  Number getRestockAmount() {
 		return this.restockAmount;
 	}
 

@@ -69,16 +69,17 @@ public class Server implements ServerInterface {
         new Thread(new StockChecker(dishQueue), "Stock Checker").start();
         new Thread(new IngredientChecker(ingredientQueue,orderQueue), "Ingredient Checker").start();
 
-            for (Staff staff : getStaff()) {
-                staff.setDishBlockingQueue(dishQueue);
-                (new Thread(staff, staff.getName())).start();
 
-            }
 
             for(Drone drone : getDrones()) {
                 drone.setQueue(ingredientQueue,orderQueue);
                 (new Thread(drone, "Drone: "+drone.getSpeed())).start();
             }
+            for (Staff staff : getStaff()) {
+            staff.setDishBlockingQueue(dishQueue);
+            //(new Thread(staff, staff.getName())).start();
+
+        }
     }
 
     //Restaurant Details

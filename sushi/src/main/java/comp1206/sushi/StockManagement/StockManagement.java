@@ -2,10 +2,8 @@ package comp1206.sushi.StockManagement;
 
 import comp1206.sushi.common.Dish;
 import comp1206.sushi.common.Ingredient;
-import comp1206.sushi.common.Order;
 
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -18,12 +16,12 @@ public class StockManagement {
     static boolean restockIngredientsEnabled = true;
     static boolean restockDishesEnabled = true;
     private static Map<Ingredient, Number> ingredientsStock = new ConcurrentHashMap<>();
-    private static Map<Dish, Number> getDishesStock = new ConcurrentHashMap<>();
+    private static Map<Dish, Number> dishesStock = new ConcurrentHashMap<>();
     private List<Dish> dishes;
-    private List<Ingredient> ingredients;
+    private static List<Ingredient> ingredients;
 
     public static Map<Ingredient, Number> getIngredientsStock() {
-        ingredientsLock.tryLock();
+        ingredientsLock.lock();
         try {
             return ingredientsStock;
         } finally {
@@ -36,7 +34,7 @@ public class StockManagement {
     public static Map<Dish, Number> getDishesStock() {
         dishesLock.lock();
         try {
-            return getDishesStock;
+            return dishesStock;
         } finally {
             dishesLock.unlock();
         }
@@ -87,15 +85,15 @@ public class StockManagement {
 
         for (Dish existingDish : getDishes()) {
             System.out.println("Dish: " + existingDish.getName()
-                    + " Quantity: " + getDishesStock.get(existingDish));
+                    + " Quantity: " + dishesStock.get(existingDish));
         }
     }
 
     public List<Dish> getDishes() {
-        dishesLock.tryLock();
+        dishesLock.lock();
         try {
-            getDishesStock.keySet();
-            dishes = new ArrayList<Dish>(getDishesStock.keySet());
+            dishesStock.keySet();
+            dishes = new ArrayList<Dish>(dishesStock.keySet());
         } finally {
             dishesLock.unlock();
         }
@@ -112,18 +110,17 @@ public class StockManagement {
         return null;
     }
 
-    public List<Ingredient> getIngredients() {
+    public synchronized static List<Ingredient> getIngredients() {
         Set<Ingredient> ingredientsSet;
-        synchronized (StockManagement.class) {
             ingredientsSet = ingredientsStock.keySet();
-        }
+
 
         ingredients = Collections.synchronizedList(new ArrayList<Ingredient>(ingredientsSet));
         return ingredients;
     }
 
     public void setIngredients(ArrayList<Ingredient> is) {
-        ingredientsLock.tryLock();
+        ingredientsLock.lock();
         try {
             ingredients = is;
 

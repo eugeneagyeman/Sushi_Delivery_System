@@ -27,19 +27,19 @@ public class Ingredient extends Model implements Serializable {
 
 	}
 
-	public String getName() {
+	public  String getName() {
 		return name;
 	}
 
-	public  void setName(String name) {
+	public void setName(String name) {
 		this.name = name;
 	}
 
-	public String getUnit() {
+	public  String getUnit() {
 		return unit;
 	}
 
-	public  void setUnit(String unit) {
+	public void setUnit(String unit) {
 		this.unit = unit;
 	}
 
@@ -47,31 +47,31 @@ public class Ingredient extends Model implements Serializable {
 		return supplier;
 	}
 
-	public  void setSupplier(Supplier supplier) {
+	public void setSupplier(Supplier supplier) {
 		this.supplier = supplier;
 	}
 
-	public Number getRestockThreshold() {
+	public synchronized Number getRestockThreshold() {
 		return restockThreshold;
 	}
 
-	public  void setRestockThreshold(Number restockThreshold) {
+	public synchronized void setRestockThreshold(Number restockThreshold) {
 		this.restockThreshold = restockThreshold;
 	}
 
-	public Number getRestockAmount() {
+	public synchronized Number getRestockAmount() {
 		return restockAmount;
 	}
 
-	public  void setRestockAmount(Number restockAmount) {
+	public synchronized void setRestockAmount(Number restockAmount) {
 		this.restockAmount = restockAmount;
 	}
 
-	public Number getWeight() {
+	public synchronized Number getWeight() {
 		return weight;
 	}
 
-	public  void setWeight(Number weight) {
+	public synchronized void setWeight(Number weight) {
 		this.weight = weight;
 	}
 }

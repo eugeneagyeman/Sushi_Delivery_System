@@ -111,33 +111,36 @@ public class Drone extends Model implements Runnable, Serializable {
         this.orderQueueInstance = orderQueue;
     }
 
-    public synchronized void grabIngredient(Ingredient ingredient,Postcode source) throws InterruptedException {
-        setStatus("Collecting: " + ingredient.getName());
-        setSource(source);
-        setDestination(ingredient.getSupplier().getPostcode());
+    public void grabIngredient(Ingredient ingredient,Postcode source) throws InterruptedException {
+            setStatus("Collecting: " + ingredient.getName());
+            setSource(source);
+            setDestination(ingredient.getSupplier().getPostcode());
 
-        setProgress(0);
+            setProgress(0);
 
-        Double distance = ingredient.getSupplier().getDistance().doubleValue();
-        Double speed = this.speed.doubleValue();
+            Double distance = ingredient.getSupplier().getDistance().doubleValue();
+            Double speed = this.speed.doubleValue();
 
-        travel(distance, speed);
-        setStatus("Destination reached... " + ingredient.getName() + "....");
-        Thread.sleep(500);
-        setDestination(base);
-        setSource(ingredient.getSupplier().getPostcode());
-        setStatus(ingredient.getName() + " Collected. Returning to base...");
+            travel(distance, 100.0);
+            setStatus("Destination reached... " + ingredient.getName() + "....");
+            Thread.sleep(500);
+            setDestination(base);
+            setSource(ingredient.getSupplier().getPostcode());
+            setStatus(ingredient.getName() + " Collected. Returning to base...");
 
-        travel(distance,100.0);
-        //travel(distance, speed);
-        StockManagement.restockIngredient(ingredient);
-        setProgress(0);
-        notifyUpdate();
-        notifyAll();
+            travel(distance, 100.0);
+            //travel(distance, speed);
+        synchronized (ingredient) {
+            StockManagement.restockIngredient(ingredient);
+            ingredient.notifyAll();
+        }
+            setProgress(0);
+            notifyUpdate();
 
-    }
+        }
 
-    public synchronized void grabOrder(Order order) throws InterruptedException, UnableToDeliverException {
+
+    public  void grabOrder(Order order) throws InterruptedException, UnableToDeliverException {
         setStatus("Preparing to deliver order: " + order.getName());
         setProgress(null);
         Map<Dish, Number> orderContents = order.getContents();
@@ -184,12 +187,12 @@ public class Drone extends Model implements Runnable, Serializable {
 
 
     @Override
-    public synchronized void run() {
+    public void run() {
         try {
             while (true) {
                 if (ingredientQueueInstance.peek() == null && orderQueueInstance.peek() == null) {
                     this.setStatus("Idle");
-					wait(3000);
+					//wait(3000);
                 } else if (ingredientQueueInstance.peek() != null) {
                     Ingredient ingredientToCollect = ingredientQueueInstance.take();
                     grabIngredient(ingredientToCollect,base);

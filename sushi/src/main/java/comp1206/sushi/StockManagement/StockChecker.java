@@ -32,19 +32,30 @@ public class StockChecker extends StockManagement implements Runnable {
             }
 
             for (Dish dish : getDishesStock().keySet()) {
+
                 int quantity = getDishesStock().get(dish).intValue();
                 int restockThreshold = dish.getRestockThreshold().intValue();
 
+                //if it needs to be built
                 if (quantity < restockThreshold) {
+                    //if it has enough ingredients
+                    {
+                        /* put it in the queue
+                        notify staff members to build
+                         */
+                    }
                     System.out.println("Putting " + dish.getName() + " in the dishesQueue");
-                    dishesQueue.add(dish);
-                    Thread.sleep(1000);
-                    dishesQueue.notifyAll();
+
+                        dishesQueue.add(dish);
+                        //
+                        Thread.sleep(1000);
+                        dishesQueue.notifyAll();
+                        //dish.notifyAll();
+
                 }
             }
             //Thread.sleep(30000);
         }
 
     }
-
 }
