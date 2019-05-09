@@ -77,7 +77,7 @@ public class ClientComms extends Thread {
         String updateString = obj.split(":")[1];
         for(User user: client.getUsers()) {
             for(Order order:user.getOrders()) {
-                if(order.getOrderID().equals(orderID)) {
+                if(order.getOrderID()==(orderID)) {
                     order.setStatus(updateString);
                 }
             }

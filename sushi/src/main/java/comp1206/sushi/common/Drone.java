@@ -1,30 +1,33 @@
 package comp1206.sushi.common;
 
+import comp1206.sushi.Communication.ServerComms;
 import comp1206.sushi.StockManagement.StockManagement;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Drone extends Model implements Runnable, Serializable {
     public static final long serialVersionUID = -1250134517313411885L;
+    private final Lock dishCheckLock = new ReentrantLock(true);
     private Number speed;
     private Number progress;
-
     private Number capacity;
     private Number battery;
-
     private String status;
-
     private Postcode base;
     private Postcode source;
     private Postcode destination;
-
     private BlockingQueue<Ingredient> ingredientQueueInstance;
     private BlockingQueue<Order> orderQueueInstance;
+    private ServerComms updateCommunications;
     private volatile boolean exit = false;
 
-    public Drone(Number speed, Postcode restaurantBase) {
+    public Drone(Number speed, Postcode restaurantBase, ServerComms updateCommunications) {
+        this.updateCommunications = updateCommunications;
         this.setSpeed(speed);
         this.setCapacity(1);
         this.setBattery(100);
@@ -39,6 +42,9 @@ public class Drone extends Model implements Runnable, Serializable {
         return speed;
     }
 
+    public synchronized void setSpeed(Number speed) {
+        this.speed = speed;
+    }
 
     public Number getProgress() {
         return progress;
@@ -47,10 +53,6 @@ public class Drone extends Model implements Runnable, Serializable {
     public synchronized void setProgress(Number progress) {
         this.progress = progress;
         notifyUpdate("progress", this.progress, progress);
-    }
-
-    public synchronized void setSpeed(Number speed) {
-        this.speed = speed;
     }
 
     @Override
@@ -131,7 +133,6 @@ public class Drone extends Model implements Runnable, Serializable {
         travel(distance, speed);
         synchronized (ingredient) {
             StockManagement.restockIngredient(ingredient);
-            ingredient.notifyAll();
         }
         setProgress(0);
         notifyUpdate();
@@ -140,9 +141,16 @@ public class Drone extends Model implements Runnable, Serializable {
 
 
     public void grabOrder(Order order) throws InterruptedException, UnableToDeliverException {
-        setStatus("Preparing to deliver order: " + order.getName());
         setProgress(null);
+        setStatus("Preparing to deliver order: " + order.getName());
+        try {
+            updateCommunications.sendMsg(String.format("%d:%s", order.getOrderID(), order.getStatus()), false);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         Map<Dish, Number> orderContents = order.getContents();
+
+        dishCheckLock.lock();
         Map<Dish, Number> dishStock = StockManagement.getDishesStock();
 
         for (Map.Entry<Dish, Number> entry : orderContents.entrySet()) {
@@ -152,15 +160,33 @@ public class Drone extends Model implements Runnable, Serializable {
 
             if (orderQty.intValue() > stockAmt) {
                 setStatus("Cannot deliver order" + order.getName() + "as dishes still need to be made");
+                try {
+                    updateCommunications.sendMsg(String.format("%d:%s", order.getOrderID(), order.getStatus()), false);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
                 throw new UnableToDeliverException("Cannot deliver order" + order.getName() + "as dishes still need to be made");
+            } else {
+                setStatus("Dishes available, getting ready to deliver.");
+                try {
+                    updateCommunications.sendMsg(String.format("%d:%s", order.getOrderID(), order.getStatus()), false);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                orderContents.forEach((key, value) -> {
+                    dishStock.replace(key, dishStock.get(key).intValue() - value.intValue());
+                });
             }
         }
-        setStatus("Dishes available, getting ready to deliver.");
-        orderContents.forEach((key, value) -> {
-            dishStock.replace(key, dishStock.get(key).intValue() - value.intValue());
-        });
 
-        setStatus("In Transit: Delivering to User:" + order.getUser().getName());
+        dishCheckLock.unlock();
+
+        setStatus("In Transit: Delivering to:" + order.getUser().getName());
+        try {
+            updateCommunications.sendMsg(String.format("%d:%s", order.getOrderID(), order.getStatus()), false);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         setProgress(0);
         Long customerDistance = order.getUser().getPostcode().getDistance().longValue();
         Long speed = this.speed.longValue();
@@ -202,8 +228,9 @@ public class Drone extends Model implements Runnable, Serializable {
                         try {
                             grabOrder(orderToDeliver);
                         } catch (UnableToDeliverException e) {
-                            System.out.println();
+                            System.out.println("Couldn't deliver");
                             orderQueueInstance.add(orderToDeliver);
+                            return;
                         }
                     }
                 }

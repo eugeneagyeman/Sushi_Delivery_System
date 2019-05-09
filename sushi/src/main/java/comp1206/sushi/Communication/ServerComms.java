@@ -54,7 +54,7 @@ public class ServerComms extends Thread {
                     outputStream.writeObject(user);
                 }
 
-                clientListener.start();
+                this.clientListener.start();
 
             } catch (SocketTimeoutException s) {
                 System.out.println("Socket timed out!");
@@ -135,7 +135,7 @@ public class ServerComms extends Thread {
         String updateString = obj.split(":")[1];
 
         for (Order order : server.getOrders()) {
-            if (order.getOrderID().equals(orderID)) {
+            if (order.getOrderID()==(orderID)) {
                 order.setStatus(updateString);
             }
         }

@@ -299,7 +299,7 @@ public class Server implements ServerInterface {
 
     @Override
     public Drone addDrone(Number speed) {
-        Drone droneToAdd = new Drone(speed,getRestaurantPostcode());
+        Drone droneToAdd = new Drone(speed,getRestaurantPostcode(), serverComms);
         droneToAdd.setQueue(ingredientQueue,orderQueue);
         drones.add(droneToAdd);
         (new Thread(droneToAdd, "Drone: "+droneToAdd.getSpeed())).start();

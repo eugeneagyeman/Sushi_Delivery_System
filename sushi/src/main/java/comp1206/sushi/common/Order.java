@@ -13,7 +13,7 @@ public class Order extends Model implements Serializable {
 	private User user;
 	private Map<Dish,Number> contents;
 	private boolean fufilled;
-	private Integer orderID;
+	private int orderID;
 
 
 
@@ -89,7 +89,7 @@ public class Order extends Model implements Serializable {
 		this.fufilled = fufilled;
 	}
 
-	public Integer getOrderID() {
+	public int getOrderID() {
 		return orderID;
 	}
 
