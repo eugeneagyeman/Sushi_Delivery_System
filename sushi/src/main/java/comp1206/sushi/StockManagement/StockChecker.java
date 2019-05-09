@@ -25,10 +25,11 @@ public class StockChecker extends StockManagement implements Runnable {
     }
 
     private void checkDishes() throws InterruptedException {
-        synchronized (dishesQueue) {
+        //synchronized (dishesQueue) {
             while (dishesQueue.remainingCapacity() == 0) {
                 System.out.println("Queue is full " + Thread.currentThread().getName() + " is waiting");
-                dishesQueue.wait();
+                Thread.sleep(10000);
+                //dishesQueue.wait();
             }
 
             for (Dish dish : getDishesStock().keySet()) {
@@ -46,16 +47,15 @@ public class StockChecker extends StockManagement implements Runnable {
                     }
                     System.out.println("Putting " + dish.getName() + " in the dishesQueue");
 
-                        dishesQueue.add(dish);
+                        dishesQueue.put(dish);
                         //
                         Thread.sleep(1000);
-                        dishesQueue.notifyAll();
+                        //dishesQueue.notifyAll();
                         //dish.notifyAll();
 
                 }
             }
             //Thread.sleep(30000);
-        }
 
     }
 }

@@ -72,11 +72,9 @@ public class Server implements ServerInterface {
 
 
             for(Drone drone : getDrones()) {
-                drone.setQueue(ingredientQueue,orderQueue);
-                (new Thread(drone, "Drone: "+drone.getSpeed())).start();
+
             }
             for (Staff staff : getStaff()) {
-            staff.setDishBlockingQueue(dishQueue);
             //(new Thread(staff, staff.getName())).start();
 
         }
@@ -301,9 +299,11 @@ public class Server implements ServerInterface {
 
     @Override
     public Drone addDrone(Number speed) {
-        Drone mock = new Drone(speed,getRestaurantPostcode());
-        drones.add(mock);
-        return mock;
+        Drone droneToAdd = new Drone(speed,getRestaurantPostcode());
+        droneToAdd.setQueue(ingredientQueue,orderQueue);
+        drones.add(droneToAdd);
+        (new Thread(droneToAdd, "Drone: "+droneToAdd.getSpeed())).start();
+        return droneToAdd;
     }
 
     @Override
@@ -350,10 +350,12 @@ public class Server implements ServerInterface {
 
     @Override
     public Staff addStaff(String name) {
-        Staff mock = new Staff(name);
-        staff.add(mock);
-        new Thread(mock,mock.getName()).start();
-        return mock;
+        Staff staffToAdd = new Staff(name);
+        staffToAdd.setDishBlockingQueue(dishQueue);
+
+        staff.add(staffToAdd);
+        new Thread(staffToAdd,staffToAdd.getName()).start();
+        return staffToAdd;
     }
 
     @Override

@@ -70,7 +70,7 @@ public class Staff extends Model implements Runnable, Serializable {
         ingredientsLock.unlock();
         if (enoughIngredients) {
 
-
+            //int randomBuildTime = ThreadLocalRandom.current().nextInt(10000);
             int randomBuildTime = ThreadLocalRandom.current().nextInt(60000 - 20000) + 20000;
             Thread.sleep(randomBuildTime);
 
@@ -118,6 +118,7 @@ public class Staff extends Model implements Runnable, Serializable {
     public void run() {
         try {
             Thread.sleep(300);
+            System.out.println(Thread.currentThread().getName()+" has started");
             while (StockManagement.isRestockDishesEnabled()) {
                 if (dishBlockingQueue.isEmpty()) {
                     setStatus("Idle");
@@ -132,6 +133,7 @@ public class Staff extends Model implements Runnable, Serializable {
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (NullPointerException uninitialised) {
+            System.out.println("Error");
 
         }
     }
