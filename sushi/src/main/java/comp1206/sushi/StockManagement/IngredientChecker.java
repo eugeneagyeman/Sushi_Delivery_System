@@ -27,7 +27,7 @@ public class IngredientChecker extends StockManagement implements Runnable {
     }
 
     private void checkIngredients() throws InterruptedException {
-            while(ingredientsQueue.remainingCapacity()==0) {
+            if (ingredientsQueue.remainingCapacity()==0) {
                 System.out.println("Queue is full " + Thread.currentThread().getName() + " is waiting");
             }
             for (Ingredient ingredient : getIngredientsStock().keySet()) {
@@ -36,9 +36,9 @@ public class IngredientChecker extends StockManagement implements Runnable {
 
                 if (quantity < restockThreshold) {
                     System.out.println("Ingredient Queue: Adding " + ingredient.getName());
-                    ingredientsQueue.add(ingredient);
+                    ingredientsQueue.put(ingredient);
                 }
             }
-            Thread.sleep(60000);
+            Thread.sleep(180000);
     }
 }

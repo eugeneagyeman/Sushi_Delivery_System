@@ -109,6 +109,17 @@ public class Drone extends Model implements Runnable, Serializable {
         this.status = status;
     }
 
+    public synchronized void setStatus(String status, Order order) {
+        try {
+            notifyUpdate("status", this.status, status);
+            this.status = status;
+            order.setStatus(status);
+            updateCommunications.sendMsg(String.format("%d:%s", order.getOrderID(), order.getStatus()), false);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public synchronized void setQueue(BlockingQueue<Ingredient> ingredientQueue, BlockingQueue orderQueue) {
         this.ingredientQueueInstance = ingredientQueue;
         this.orderQueueInstance = orderQueue;
@@ -140,14 +151,12 @@ public class Drone extends Model implements Runnable, Serializable {
     }
 
 
-    public void grabOrder(Order order) throws InterruptedException, UnableToDeliverException {
+    public boolean grabOrder(Order order) throws InterruptedException, IOException {
+        boolean enoughDishes = true;
+
         setProgress(null);
-        setStatus("Preparing to deliver order: " + order.getName());
-        try {
-            updateCommunications.sendMsg(String.format("%d:%s", order.getOrderID(), order.getStatus()), false);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        setStatus("Preparing to deliver order: " + order.getName(), order);
+
         Map<Dish, Number> orderContents = order.getContents();
 
         dishCheckLock.lock();
@@ -159,42 +168,27 @@ public class Drone extends Model implements Runnable, Serializable {
             int stockAmt = dishStock.get(currentDish).intValue();
 
             if (orderQty.intValue() > stockAmt) {
-                setStatus("Cannot deliver order" + order.getName() + "as dishes still need to be made");
-                try {
-                    updateCommunications.sendMsg(String.format("%d:%s", order.getOrderID(), order.getStatus()), false);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                throw new UnableToDeliverException("Cannot deliver order" + order.getName() + "as dishes still need to be made");
+                setStatus("Cannot deliver order" + order.getName() + "as dishes still need to be made", order);
+                enoughDishes = false;
+                System.out.println("Cannot deliver order" + order.getName() + "as dishes still need to be made");
             } else {
-                setStatus("Dishes available, getting ready to deliver.");
-                try {
-                    updateCommunications.sendMsg(String.format("%d:%s", order.getOrderID(), order.getStatus()), false);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                orderContents.forEach((key, value) -> {
-                    dishStock.replace(key, dishStock.get(key).intValue() - value.intValue());
-                });
+                setStatus("Dishes available, getting ready to deliver.", order);
+                orderContents.forEach((key, value) -> dishStock.replace(key, dishStock.get(key).intValue() - value.intValue()));
             }
         }
-
         dishCheckLock.unlock();
-
-        setStatus("In Transit: Delivering to:" + order.getUser().getName());
-        try {
-            updateCommunications.sendMsg(String.format("%d:%s", order.getOrderID(), order.getStatus()), false);
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (enoughDishes) {
+            setStatus("In Transit: Delivering to:" + order.getUser().getName(), order);
+            setProgress(0);
+            Long customerDistance = order.getUser().getPostcode().getDistance().longValue();
+            Long speed = this.speed.longValue();
+            travel(customerDistance, speed);
+            setStatus("Complete");
+            order.setStatus("Delivered");
+            updateCommunications.sendMsg(order.getOrderID()+":"+order.getStatus(),false);
+            travel(customerDistance, speed);
         }
-        setProgress(0);
-        Long customerDistance = order.getUser().getPostcode().getDistance().longValue();
-        Long speed = this.speed.longValue();
-        travel(customerDistance, speed);
-        setStatus("Order delivered...returning to base");
-        travel(customerDistance, speed);
-
-
+        return enoughDishes;
     }
 
     private void travel(Long distance, Long speed) throws InterruptedException {
@@ -216,27 +210,30 @@ public class Drone extends Model implements Runnable, Serializable {
     public void run() {
         while (!exit) {
             try {
-                while (true) {
-                    if (ingredientQueueInstance.peek() == null && orderQueueInstance.peek() == null) {
+                Thread.sleep(100);
+                System.out.println(Thread.currentThread().getName()+" has started");
+
+                while (StockManagement.isRestockIngredientsEnabled()) {
+                    if (ingredientQueueInstance.isEmpty() && orderQueueInstance.isEmpty()) {
                         this.setStatus("Idle");
-                        //wait(3000);
+                    } else if (orderQueueInstance.peek() != null) {
+                        Order orderToDeliver = orderQueueInstance.take();
+                        synchronized (orderToDeliver) {
+                            if(!grabOrder(orderToDeliver)) {
+                                orderQueueInstance.put(orderToDeliver);
+                                return;
+                            }
+                        }
+                        System.out.println("Couldn't deliver");
+
                     } else if (ingredientQueueInstance.peek() != null) {
                         Ingredient ingredientToCollect = ingredientQueueInstance.take();
                         grabIngredient(ingredientToCollect, base);
-                    } else if (orderQueueInstance.peek() != null) {
-                        Order orderToDeliver = orderQueueInstance.take();
-                        try {
-                            grabOrder(orderToDeliver);
-                        } catch (UnableToDeliverException e) {
-                            System.out.println("Couldn't deliver");
-                            orderQueueInstance.add(orderToDeliver);
-                            return;
-                        }
                     }
                 }
-            } catch (InterruptedException e) {
+            } catch (InterruptedException | IOException e) {
                 e.printStackTrace();
-            } catch (NullPointerException notinitiliased) {
+            } catch (NullPointerException ignored) {
 
             }
 
@@ -248,8 +245,10 @@ public class Drone extends Model implements Runnable, Serializable {
     }
 
     private class UnableToDeliverException extends Exception {
-        public UnableToDeliverException(String message) {
-            super(message);
-        }
+// --Commented out by Inspection START (2019-05-09 19:38):
+//        public UnableToDeliverException(String message) {
+//            super(message);
+//        }
+// --Commented out by Inspection STOP (2019-05-09 19:38)
     }
 }

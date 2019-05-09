@@ -108,12 +108,11 @@ public class Staff extends Model implements Runnable, Serializable {
     public void run() {
         while(!exit){
         try {
-            Thread.sleep(300);
+            Thread.sleep(100);
             System.out.println(Thread.currentThread().getName()+" has started");
             while (StockManagement.isRestockDishesEnabled()) {
                 if (dishBlockingQueue.isEmpty()) {
                     setStatus("Idle");
-                    //wait();
                 } else {
                     Dish toBuild = dishBlockingQueue.take();
                     System.out.println(Thread.currentThread().getName() + " is attempting to build: " + toBuild.getName() + "\n");

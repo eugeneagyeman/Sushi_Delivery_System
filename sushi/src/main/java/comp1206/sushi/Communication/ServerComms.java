@@ -124,7 +124,7 @@ public class ServerComms extends Thread {
 
     }
 
-    private static void sendMsg(Object obj) throws IOException {
+    public static void sendMsg(Object obj) throws IOException {
         ServerComms.outputStream.writeObject(obj);
 
     }
