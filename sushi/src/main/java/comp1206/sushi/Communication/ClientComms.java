@@ -25,7 +25,6 @@ public class ClientComms extends Thread {
         this.client = aClient;
 
 
-
         try {
             System.out.println("Connecting to " + serverName + " on port " + port);
             Socket clientSocket = new Socket(serverName, port);
@@ -45,24 +44,18 @@ public class ClientComms extends Thread {
     }
 
     public void run() {
-        while(true) {
+        while (true) {
             try {
-
-
                 Object obj = clientInputStream.readObject();
-                if(obj instanceof Dish) {
+                if (obj instanceof Dish) {
                     client.addDish((Dish) obj);
-                } else if(obj instanceof Postcode) {
+                } else if (obj instanceof Postcode) {
                     client.addPostcode((Postcode) obj);
-                } else if(obj instanceof User) {
+                } else if (obj instanceof User) {
                     client.getUsers().add((User) obj);
-                } else if(obj instanceof String) {
-                    //Find order and update status
+                } else if (obj instanceof String) {
                     parseReceivedMsg((String) obj);
                 }
-
-
-
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (ClassNotFoundException e) {
@@ -75,9 +68,9 @@ public class ClientComms extends Thread {
 
         Integer orderID = Integer.valueOf(obj.split(":")[0]);
         String updateString = obj.split(":")[1];
-        for(User user: client.getUsers()) {
-            for(Order order:user.getOrders()) {
-                if(order.getOrderID()==(orderID)) {
+        for (User user : client.getUsers()) {
+            for (Order order : user.getOrders()) {
+                if (order.getOrderID() == (orderID)) {
                     order.setStatus(updateString);
                 }
             }

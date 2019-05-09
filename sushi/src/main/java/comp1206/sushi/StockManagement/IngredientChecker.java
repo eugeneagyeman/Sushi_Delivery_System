@@ -7,11 +7,9 @@ import java.util.concurrent.BlockingQueue;
 
 public class IngredientChecker extends StockManagement implements Runnable {
     private final BlockingQueue<Ingredient> ingredientsQueue;
-    private final BlockingQueue<Order> orderQueue;
 
-    public IngredientChecker(BlockingQueue<Ingredient> queue, BlockingQueue<Order> orders) {
+    public IngredientChecker(BlockingQueue<Ingredient> queue) {
         this.ingredientsQueue = queue;
-        this.orderQueue = orders;
     }
 
     @Override

@@ -102,7 +102,6 @@ public class ServerComms extends Thread {
                 if (obj instanceof Order) {
                     Order receivedOrder = (Order) obj;
                     receivedOrder.setStatus("Received");
-                    //send message across to client to update status
                     String notify = String.format("%s:Received", receivedOrder.getOrderID());
                     ServerComms.sendMsg(notify);
 

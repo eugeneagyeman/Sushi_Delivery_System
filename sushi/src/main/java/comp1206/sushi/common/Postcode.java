@@ -50,7 +50,7 @@ public class Postcode extends Model implements Serializable {
 		return this.latLong;
 	}
 	
-	protected void calculateDistance(Restaurant restaurant) {
+	private void calculateDistance(Restaurant restaurant) {
 		final double radius = 6372.8;
 		Postcode restaurantLocation = restaurant.getLocation();
 		Double restaurantLat = restaurantLocation.getLatLong().get("lat");
@@ -65,11 +65,11 @@ public class Postcode extends Model implements Serializable {
 		double c = 2 * Math.asin(Math.sqrt(a));
 		double answer = radius*c*1000;
 		this.distance = Math.round(answer);
+
 	}
 	
-	protected void calculateLatLong() {
+	private void calculateLatLong() {
 		try {
-			//Code amended from this link https://chillyfacts.com/java-send-http-getpost-request-and-read-json-response/
 
 			String postcodeToGet = this.name.replaceAll("\\s+","");
 			URL url = new URL("https://www.southampton.ac.uk/~ob1a12/postcode/postcode.php?postcode="+postcodeToGet);

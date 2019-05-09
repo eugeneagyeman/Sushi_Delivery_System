@@ -128,7 +128,10 @@ public class Client implements ClientInterface {
     @Override
     public User login(String username, String password) {
         for (User user : users) {
-            if (user.getName().equals(username) && user.getPassword().equals(password)) return user;
+            if (user.getName().equals(username) && user.getPassword().equals(password)) {
+                user.getBasket().clear();
+                return user;
+            }
         }
         return null;
     }
@@ -210,12 +213,8 @@ public class Client implements ClientInterface {
         checkoutOrder.setContents(user.getBasket());
         checkoutOrder.setCost(getBasketCost(user));
         checkoutOrder.setStatus("Sent");
-
         //add to list of checkouts
         user.getOrders().add(checkoutOrder);
-
-        //clear basket for next order
-        user.getBasket().clear();
 
         //notify server
         try {
@@ -223,6 +222,11 @@ public class Client implements ClientInterface {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+
+
+        //clear basket for next order
+        user.getBasket().clear();
         this.notifyUpdate();
         return checkoutOrder;
     }

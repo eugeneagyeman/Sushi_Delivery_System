@@ -44,9 +44,9 @@ public class Staff extends Model implements Runnable, Serializable {
             Number recipeQuantity = entry.getValue();
             int currentIngredientAmount = ingredientsStock.get(currentIngredient).intValue();
 
-            System.out.println("Ingredient: " + currentIngredient.getName() + "\tRecipe: " + dish.getName()
+            /*System.out.println("Ingredient: " + currentIngredient.getName() + "\tRecipe: " + dish.getName()
                     + "\tRecipe Quantity: " + recipeQuantity + "\t"
-                    + "\t Currently in Stock:" + currentIngredientAmount);
+                    + "\t Currently in Stock:" + currentIngredientAmount);*/
 
             if (recipeQuantity.intValue() >= currentIngredientAmount) {
                 enoughIngredients = false;
@@ -115,7 +115,7 @@ public class Staff extends Model implements Runnable, Serializable {
                     setStatus("Idle");
                 } else {
                     Dish toBuild = dishBlockingQueue.take();
-                    System.out.println(Thread.currentThread().getName() + " is attempting to build: " + toBuild.getName() + "\n");
+                    System.out.println(Thread.currentThread().getName() + " is attempting to build: " + toBuild.getName());
                     this.setStatus("Building: " + toBuild.getName());
                     build(toBuild);
                 }

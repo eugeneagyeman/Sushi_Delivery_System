@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Order extends Model implements Serializable {
@@ -23,7 +24,7 @@ public class Order extends Model implements Serializable {
 		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/YYYY HH:mm:ss");  
 		LocalDateTime now = LocalDateTime.now();  
 		this.name = dtf.format(now);
-		contents = new HashMap<>();
+		contents = new ConcurrentHashMap<>();
 		cost = 0;
 		fufilled = false;
 		generateOrderID();
@@ -34,7 +35,7 @@ public class Order extends Model implements Serializable {
 		LocalDateTime now = LocalDateTime.now();
 		this.name = dtf.format(now);
 		this.user = user;
-		contents = new HashMap<>();
+		contents = new ConcurrentHashMap<>();
 		cost = 0;
 		fufilled = false;
 		generateOrderID();

@@ -14,8 +14,6 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,12 +30,8 @@ public class Server implements ServerInterface {
     private static final ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
     private static final ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
     private static Restaurant restaurant;
-    private final Lock taskLock = new ReentrantLock();
-    private final Lock dronesLock = new ReentrantLock();
     private StockManagement stockManagement;
     private ServerComms serverComms;
-
-
 
     private BlockingQueue<Order> orderQueue;
     private BlockingQueue<Dish> dishQueue;
@@ -67,17 +61,8 @@ public class Server implements ServerInterface {
         ingredientQueue = new LinkedBlockingQueue<>(10);
         loadConfiguration("Configuration.txt");
         new Thread(new StockChecker(dishQueue), "Stock Checker").start();
-        new Thread(new IngredientChecker(ingredientQueue,orderQueue), "Ingredient Checker").start();
+        new Thread(new IngredientChecker(ingredientQueue), "Ingredient Checker").start();
 
-
-
-            for(Drone drone : getDrones()) {
-
-            }
-            for (Staff staff : getStaff()) {
-            //(new Thread(staff, staff.getName())).start();
-
-        }
     }
 
     //Restaurant Details
