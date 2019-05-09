@@ -22,8 +22,9 @@ public class Drone extends Model implements Runnable, Serializable {
 
     private BlockingQueue<Ingredient> ingredientQueueInstance;
     private BlockingQueue<Order> orderQueueInstance;
+    private volatile boolean exit = false;
 
-    public Drone(Number speed,Postcode restaurantBase) {
+    public Drone(Number speed, Postcode restaurantBase) {
         this.setSpeed(speed);
         this.setCapacity(1);
         this.setBattery(100);
@@ -111,36 +112,34 @@ public class Drone extends Model implements Runnable, Serializable {
         this.orderQueueInstance = orderQueue;
     }
 
-    public void grabIngredient(Ingredient ingredient,Postcode source) throws InterruptedException {
-            setStatus("Collecting: " + ingredient.getName());
-            setSource(source);
-            setDestination(ingredient.getSupplier().getPostcode());
+    public void grabIngredient(Ingredient ingredient, Postcode source) throws InterruptedException {
+        setStatus("Collecting: " + ingredient.getName());
+        setSource(source);
+        setDestination(ingredient.getSupplier().getPostcode());
 
-            setProgress(0);
+        setProgress(0);
 
-            Double distance = ingredient.getSupplier().getDistance().doubleValue();
-            Double speed = this.speed.doubleValue();
+        Long distance = ingredient.getSupplier().getDistance().longValue();
+        Long speed = this.speed.longValue();
 
-            travel(distance, 100.0);
-            setStatus("Destination reached... " + ingredient.getName() + "....");
-            Thread.sleep(500);
-            setDestination(base);
-            setSource(ingredient.getSupplier().getPostcode());
-            setStatus(ingredient.getName() + " Collected. Returning to base...");
-
-            travel(distance, 100.0);
-            //travel(distance, speed);
+        travel(distance, speed);
+        setStatus("Destination reached... " + ingredient.getName() + "....");
+        Thread.sleep(500);
+        setDestination(base);
+        setSource(ingredient.getSupplier().getPostcode());
+        setStatus(ingredient.getName() + " Collected. Returning to base...");
+        travel(distance, speed);
         synchronized (ingredient) {
             StockManagement.restockIngredient(ingredient);
             ingredient.notifyAll();
         }
-            setProgress(0);
-            notifyUpdate();
+        setProgress(0);
+        notifyUpdate();
 
-        }
+    }
 
 
-    public  void grabOrder(Order order) throws InterruptedException, UnableToDeliverException {
+    public void grabOrder(Order order) throws InterruptedException, UnableToDeliverException {
         setStatus("Preparing to deliver order: " + order.getName());
         setProgress(null);
         Map<Dish, Number> orderContents = order.getContents();
@@ -163,8 +162,8 @@ public class Drone extends Model implements Runnable, Serializable {
 
         setStatus("In Transit: Delivering to User:" + order.getUser().getName());
         setProgress(0);
-        Double customerDistance = (Double) order.getUser().getPostcode().getDistance();
-        Double speed = this.speed.doubleValue();
+        Long customerDistance = order.getUser().getPostcode().getDistance().longValue();
+        Long speed = this.speed.longValue();
         travel(customerDistance, speed);
         setStatus("Order delivered...returning to base");
         travel(customerDistance, speed);
@@ -172,9 +171,10 @@ public class Drone extends Model implements Runnable, Serializable {
 
     }
 
-    private void travel(Double distance, Double speed) throws InterruptedException {
-        Double timeTillDestination = distance / speed;
-        Double timeElapsed = (double) 0;
+    private void travel(Long distance, Long speed) throws InterruptedException {
+        long timeTillDestination = distance / speed;
+        double timeElapsed = (double) 0;
+
         while (timeElapsed < timeTillDestination) {
             timeElapsed += 1;
             Thread.sleep(1000);
@@ -188,30 +188,36 @@ public class Drone extends Model implements Runnable, Serializable {
 
     @Override
     public void run() {
-        try {
-            while (true) {
-                if (ingredientQueueInstance.peek() == null && orderQueueInstance.peek() == null) {
-                    this.setStatus("Idle");
-					//wait(3000);
-                } else if (ingredientQueueInstance.peek() != null) {
-                    Ingredient ingredientToCollect = ingredientQueueInstance.take();
-                    grabIngredient(ingredientToCollect,base);
-                } else if (orderQueueInstance.peek() != null) {
-                    Order orderToDeliver = orderQueueInstance.take();
-                    try {
-                        grabOrder(orderToDeliver);
-                    } catch (UnableToDeliverException e) {
-                        System.out.println();
-                        orderQueueInstance.add(orderToDeliver);
+        while (!exit) {
+            try {
+                while (true) {
+                    if (ingredientQueueInstance.peek() == null && orderQueueInstance.peek() == null) {
+                        this.setStatus("Idle");
+                        //wait(3000);
+                    } else if (ingredientQueueInstance.peek() != null) {
+                        Ingredient ingredientToCollect = ingredientQueueInstance.take();
+                        grabIngredient(ingredientToCollect, base);
+                    } else if (orderQueueInstance.peek() != null) {
+                        Order orderToDeliver = orderQueueInstance.take();
+                        try {
+                            grabOrder(orderToDeliver);
+                        } catch (UnableToDeliverException e) {
+                            System.out.println();
+                            orderQueueInstance.add(orderToDeliver);
+                        }
                     }
                 }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (NullPointerException notinitiliased) {
+
             }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (NullPointerException notinitiliased) {
 
         }
+    }
 
+    public void stop() {
+        this.exit = true;
     }
 
     private class UnableToDeliverException extends Exception {

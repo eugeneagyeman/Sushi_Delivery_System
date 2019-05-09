@@ -17,7 +17,7 @@ public class Staff extends Model implements Runnable, Serializable {
     private String status;
     private Number fatigue;
     private BlockingQueue<Dish> dishBlockingQueue;
-    private boolean exit = false;
+    private volatile boolean exit = false;
 
 
     public Staff(String name) {
@@ -30,17 +30,7 @@ public class Staff extends Model implements Runnable, Serializable {
 
     }
 
-    //check stock level of dishes
-    //done using value of quantity.
-    //if there are enough ingredients
-    //checked using recipe against ingredients map.
-    //check all ingredients in recipe are in the system
-    //check quantity is below or equal to current quantity
-    //if so then deduct recipe amount from quantity amount.
-    //if not then do other dishes, or if not then wait
-    //build dish and update key
     public void build(Dish dish) throws InterruptedException {
-        //synchronized (dish) {
         Map<Ingredient, Number> dishrecipe = dish.getRecipe();
         boolean enoughIngredients = true;
 

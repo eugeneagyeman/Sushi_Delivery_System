@@ -308,6 +308,7 @@ public class Server implements ServerInterface {
 
     @Override
     public void removeDrone(Drone drone) {
+        drone.stop();
         drones.remove(drone);
         this.notifyUpdate();
     }
@@ -413,17 +414,18 @@ public class Server implements ServerInterface {
 
     @Override
     public boolean isOrderComplete(Order order) {
-        return true;
+        return order.isFufilled();
     }
 
     @Override
     public String getOrderStatus(Order order) {
-        Random rand = new Random();
+        return order.getStatus();
+        /*Random rand = new Random();
         if (rand.nextBoolean()) {
             return "Complete";
         } else {
             return "Pending";
-        }
+        }*/
     }
 
     //Postcodes

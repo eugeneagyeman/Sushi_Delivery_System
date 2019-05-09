@@ -25,6 +25,7 @@ public class Client implements ClientInterface {
     private ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
     ClientComms comms;
     String id;
+    User currentUser;
 
 
     public Client() {
@@ -208,6 +209,7 @@ public class Client implements ClientInterface {
         //add basket and cost to order
         checkoutOrder.setContents(user.getBasket());
         checkoutOrder.setCost(getBasketCost(user));
+        checkoutOrder.setStatus("Sent");
 
         //add to list of checkouts
         user.getOrders().add(checkoutOrder);
@@ -253,7 +255,12 @@ public class Client implements ClientInterface {
 
     @Override
     public void cancelOrder(Order order) {
-        order.setStatus("Cancelled");
+        try {
+            order.setStatus("Cancelled");
+            comms.sendMsg(order.getOrderID()+":"+order.getStatus());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         //int index = order.getUser().getOrders().indexOf(order);
         //order.getUser().getOrders().remove(index);

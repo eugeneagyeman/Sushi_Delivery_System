@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import comp1206.sushi.common.*;
 
@@ -55,6 +56,9 @@ public class ClientComms extends Thread {
                     client.addPostcode((Postcode) obj);
                 } else if(obj instanceof User) {
                     client.getUsers().add((User) obj);
+                } else if(obj instanceof String) {
+                    //Find order and update status
+                    parseReceivedMsg((String) obj);
                 }
 
 
@@ -67,7 +71,18 @@ public class ClientComms extends Thread {
         }
     }
 
+    private void parseReceivedMsg(String obj) {
 
+        Integer orderID = Integer.valueOf(obj.split(":")[0]);
+        String updateString = obj.split(":")[1];
+        for(User user: client.getUsers()) {
+            for(Order order:user.getOrders()) {
+                if(order.getOrderID().equals(orderID)) {
+                    order.setStatus(updateString);
+                }
+            }
+        }
+    }
 
 
 }

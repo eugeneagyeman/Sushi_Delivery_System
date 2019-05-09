@@ -25,37 +25,22 @@ public class StockChecker extends StockManagement implements Runnable {
     }
 
     private void checkDishes() throws InterruptedException {
-        //synchronized (dishesQueue) {
-            while (dishesQueue.remainingCapacity() == 0) {
-                System.out.println("Queue is full " + Thread.currentThread().getName() + " is waiting");
-                Thread.sleep(10000);
-                //dishesQueue.wait();
+        while (dishesQueue.remainingCapacity() == 0) {
+            System.out.println("Queue is full " + Thread.currentThread().getName() + " is waiting");
+            Thread.sleep(10000);
+        }
+
+        for (Dish dish : getDishesStock().keySet()) {
+
+            int quantity = getDishesStock().get(dish).intValue();
+            int restockThreshold = dish.getRestockThreshold().intValue();
+
+            if (quantity < restockThreshold) {
+                System.out.println("Putting " + dish.getName() + " in the dishesQueue");
+                dishesQueue.put(dish);
+                Thread.sleep(1000);
             }
-
-            for (Dish dish : getDishesStock().keySet()) {
-
-                int quantity = getDishesStock().get(dish).intValue();
-                int restockThreshold = dish.getRestockThreshold().intValue();
-
-                //if it needs to be built
-                if (quantity < restockThreshold) {
-                    //if it has enough ingredients
-                    {
-                        /* put it in the queue
-                        notify staff members to build
-                         */
-                    }
-                    System.out.println("Putting " + dish.getName() + " in the dishesQueue");
-
-                        dishesQueue.put(dish);
-                        //
-                        Thread.sleep(1000);
-                        //dishesQueue.notifyAll();
-                        //dish.notifyAll();
-
-                }
-            }
-            //Thread.sleep(30000);
+        }
 
     }
 }

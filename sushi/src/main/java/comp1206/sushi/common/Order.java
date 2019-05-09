@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Order extends Model implements Serializable {
 	public static final long serialVersionUID = -1527491017931721943L;
@@ -12,6 +13,7 @@ public class Order extends Model implements Serializable {
 	private User user;
 	private Map<Dish,Number> contents;
 	private boolean fufilled;
+	private Integer orderID;
 
 
 
@@ -24,6 +26,7 @@ public class Order extends Model implements Serializable {
 		contents = new HashMap<>();
 		cost = 0;
 		fufilled = false;
+		generateOrderID();
 	}
 
 	public Order(User user) {
@@ -34,6 +37,7 @@ public class Order extends Model implements Serializable {
 		contents = new HashMap<>();
 		cost = 0;
 		fufilled = false;
+		generateOrderID();
 	}
 
 
@@ -75,5 +79,22 @@ public class Order extends Model implements Serializable {
 
 	public Map<Dish, Number> getContents() {
 		return contents;
+	}
+
+	public boolean isFufilled() {
+		return fufilled;
+	}
+
+	public void setFufilled(boolean fufilled) {
+		this.fufilled = fufilled;
+	}
+
+	public Integer getOrderID() {
+		return orderID;
+	}
+
+	public void generateOrderID() {
+        this.orderID = ThreadLocalRandom.current().nextInt(0, 9999);
+
 	}
 }
