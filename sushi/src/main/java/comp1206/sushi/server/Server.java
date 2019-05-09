@@ -360,6 +360,7 @@ public class Server implements ServerInterface {
 
     @Override
     public void removeStaff(Staff staff) {
+        staff.stop();
         Server.staff.remove(staff);
         this.notifyUpdate();
     }

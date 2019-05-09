@@ -16,8 +16,8 @@ public class Staff extends Model implements Runnable, Serializable {
     private String name;
     private String status;
     private Number fatigue;
-    private boolean ready = true;
     private BlockingQueue<Dish> dishBlockingQueue;
+    private boolean exit = false;
 
 
     public Staff(String name) {
@@ -116,6 +116,7 @@ public class Staff extends Model implements Runnable, Serializable {
 
     @Override
     public void run() {
+        while(!exit){
         try {
             Thread.sleep(300);
             System.out.println(Thread.currentThread().getName()+" has started");
@@ -135,6 +136,12 @@ public class Staff extends Model implements Runnable, Serializable {
         } catch (NullPointerException uninitialised) {
             System.out.println("Error");
 
-        }
+        }}
     }
+
+    public void stop() {
+        this.exit=true;
+    }
+
+
 }
