@@ -12,14 +12,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import comp1206.sushi.common.*;
 
 
-public class ClientComms extends Thread {
+public class ClientCommunications extends Thread {
     String serverName;
     int port;
     ObjectInputStream clientInputStream;
     ObjectOutputStream clientOutputStream;
     Client client;
 
-    public ClientComms(Client aClient) {
+    public ClientCommunications(Client aClient) {
         serverName = "localhost";
         port = 3000;
         this.client = aClient;

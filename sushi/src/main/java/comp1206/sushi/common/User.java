@@ -77,4 +77,9 @@ public class User extends Model implements Serializable {
 	public ArrayList<Order> getOrders() {
 		return orders;
 	}
+
+	@Override
+	public String toString() {
+		return String.format("USER:%s:%s:%s:%s", this.getName(), this.getPassword(), this.getAddress(), this.getPostcode());
+	}
 }

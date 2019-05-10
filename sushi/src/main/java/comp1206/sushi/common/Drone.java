@@ -1,6 +1,6 @@
 package comp1206.sushi.common;
 
-import comp1206.sushi.Communication.ServerComms;
+import comp1206.sushi.Communication.ServerCommunications;
 import comp1206.sushi.StockManagement.StockManagement;
 
 import java.io.IOException;
@@ -22,10 +22,10 @@ public class Drone extends Model implements Runnable, Serializable {
     private Postcode destination;
     private BlockingQueue<Ingredient> ingredientQueueInstance;
     private BlockingQueue<Order> orderQueueInstance;
-    private ServerComms updateCommunications;
+    private ServerCommunications updateCommunications;
     private volatile boolean exit = false;
 
-    public Drone(Number speed, Postcode restaurantBase, ServerComms updateCommunications) {
+    public Drone(Number speed, Postcode restaurantBase, ServerCommunications updateCommunications) {
         this.updateCommunications = updateCommunications;
         this.setSpeed(speed);
         this.setCapacity(1);

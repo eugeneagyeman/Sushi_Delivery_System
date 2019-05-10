@@ -98,4 +98,8 @@ public class Order extends Model implements Serializable {
         this.orderID = ThreadLocalRandom.current().nextInt(0, 9999);
 
 	}
+
+	public String toString() {
+		return String.format("ORDER:%s:%s", this.getName(), this.getContents().toString());
+	}
 }

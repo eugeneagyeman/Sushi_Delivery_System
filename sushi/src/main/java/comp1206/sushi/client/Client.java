@@ -1,14 +1,11 @@
 package comp1206.sushi.client;
 
 import java.io.*;
-import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import comp1206.sushi.Communication.ClientComms;
-import comp1206.sushi.Communication.ServerComms;
+import comp1206.sushi.Communication.ClientCommunications;
 import comp1206.sushi.common.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,7 +20,7 @@ public class Client implements ClientInterface {
     public static ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
     public static ArrayList<Dish> dishes = new ArrayList<Dish>();
     private ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
-    ClientComms comms;
+    ClientCommunications comms;
     String id;
     User currentUser;
 
@@ -46,7 +43,7 @@ public class Client implements ClientInterface {
         postcodes.add(postcode4);
         postcodes.add(postcode5);*/
 
-        comms = new ClientComms(this);
+        comms = new ClientCommunications(this);
 
         /*Dish dish1 = new Dish("Dish 1", "Dish 1", 1, 1, 10);
         Dish dish2 = new Dish("Dish 2", "Dish 2", 2, 1, 10);

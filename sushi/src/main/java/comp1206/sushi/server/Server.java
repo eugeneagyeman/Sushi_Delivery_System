@@ -1,6 +1,6 @@
 package comp1206.sushi.server;
 
-import comp1206.sushi.Communication.ServerComms;
+import comp1206.sushi.Communication.ServerCommunications;
 import comp1206.sushi.StockManagement.IngredientChecker;
 import comp1206.sushi.StockManagement.StockChecker;
 import comp1206.sushi.StockManagement.StockManagement;
@@ -19,23 +19,24 @@ import java.util.regex.Pattern;
 
 import static java.lang.Integer.valueOf;
 
-public class Server implements ServerInterface {
+public class Server implements ServerInterface,Serializable {
 
-    private static final Logger logger = LogManager.getLogger("Server");
-    private static final ArrayList<Order> orders = new ArrayList<Order>();
-    private static final ArrayList<User> users = new ArrayList<User>();
-    private static final ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
-    private static final ArrayList<Drone> drones = new ArrayList<Drone>();
-    private static final ArrayList<Staff> staff = new ArrayList<Staff>();
-    private static final ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
-    private static final ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
-    private static Restaurant restaurant;
+    private  final Logger logger = LogManager.getLogger("Server");
+    private  final ArrayList<Order> orders = new ArrayList<Order>();
+    private  final ArrayList<User> users = new ArrayList<User>();
+    private  final ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
+    private  final ArrayList<Drone> drones = new ArrayList<Drone>();
+    private  final ArrayList<Staff> staff = new ArrayList<Staff>();
+    private  final ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
+    private  final ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
+    private  Restaurant restaurant;
     private StockManagement stockManagement;
-    private ServerComms serverComms;
+    private ServerCommunications serverComms;
 
     private BlockingQueue<Order> orderQueue;
     private BlockingQueue<Dish> dishQueue;
     private BlockingQueue<Ingredient> ingredientQueue;
+    private DataPersistence test;
 
 
 
@@ -45,6 +46,7 @@ public class Server implements ServerInterface {
         logger.info("Starting up server...");
         try {
             init();
+            test = new DataPersistence(this);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -52,7 +54,7 @@ public class Server implements ServerInterface {
     }
 
     private void init() throws IOException {
-        serverComms = new ServerComms(this);
+        serverComms = new ServerCommunications(this);
         stockManagement = new StockManagement();
         Postcode restaurantPostcode = new Postcode("SO17 1BJ");
         restaurant = new Restaurant("Mock Restaurant", restaurantPostcode);
@@ -347,7 +349,7 @@ public class Server implements ServerInterface {
     @Override
     public void removeStaff(Staff staff) {
         staff.stop();
-        Server.staff.remove(staff);
+        this.getStaff().remove(staff);
         this.notifyUpdate();
     }
 
@@ -489,6 +491,7 @@ public class Server implements ServerInterface {
     @Override
     public void notifyUpdate() {
         listeners.forEach(listener -> listener.updated(new UpdateEvent()));
+        //test.writeState(this);
     }
 
 

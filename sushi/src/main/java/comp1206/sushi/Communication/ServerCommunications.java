@@ -1,21 +1,17 @@
 package comp1206.sushi.Communication;
 
-import comp1206.sushi.StockManagement.StockManagement;
 import comp1206.sushi.common.*;
 import comp1206.sushi.server.Server;
 
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 
 
-public class ServerComms extends Thread {
-    private ServerSocket serverSocket;
+public class ServerCommunications extends Thread implements Serializable {
+    private static ServerSocket serverSocket;
 
 
     protected static ObjectOutputStream outputStream;
@@ -23,7 +19,7 @@ public class ServerComms extends Thread {
     static Server server;
     ClientListener clientListener;
 
-    public ServerComms(Server aServer) throws IOException {
+    public ServerCommunications(Server aServer) throws IOException {
         serverSocket = new ServerSocket(3000);
         server = aServer;
         clientListener = new ClientListener();
@@ -69,7 +65,7 @@ public class ServerComms extends Thread {
     public void sendMsg(Object obj, boolean sendToAll) throws IOException {
         outputStream.writeObject(obj);
         if (sendToAll) {
-            for (ServerComms connectedClients : clientListener.getActiveClients()) {
+            for (ServerCommunications connectedClients : clientListener.getActiveClients()) {
                 connectedClients.getOutputStream().writeObject(obj);
             }
         }
@@ -83,10 +79,10 @@ public class ServerComms extends Thread {
         return inputStream;
     }
 
-    protected class ClientListener extends Thread {
-        ArrayList<ServerComms> activeClients = new ArrayList<>();
+    protected class ClientListener extends Thread implements Serializable{
+        ArrayList<ServerCommunications> activeClients = new ArrayList<>();
 
-        public ArrayList<ServerComms> getActiveClients() {
+        public ArrayList<ServerCommunications> getActiveClients() {
             return activeClients;
         }
 
@@ -98,12 +94,12 @@ public class ServerComms extends Thread {
 
         void receiveMsg() {
             try {
-                Object obj = ServerComms.getInputStream().readObject();
+                Object obj = ServerCommunications.getInputStream().readObject();
                 if (obj instanceof Order) {
                     Order receivedOrder = (Order) obj;
                     receivedOrder.setStatus("Received");
                     String notify = String.format("%s:Received", receivedOrder.getOrderID());
-                    ServerComms.sendMsg(notify);
+                    ServerCommunications.sendMsg(notify);
 
                     server.getOrders().add(receivedOrder);
                     server.getOrderQueue().add(receivedOrder);
@@ -124,7 +120,7 @@ public class ServerComms extends Thread {
     }
 
     public static void sendMsg(Object obj) throws IOException {
-        ServerComms.outputStream.writeObject(obj);
+        ServerCommunications.outputStream.writeObject(obj);
 
     }
 
