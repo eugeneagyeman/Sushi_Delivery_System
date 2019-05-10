@@ -71,10 +71,7 @@ public final class Dish extends Model {
 		return this.restockAmount;
 	}
 
-	public String toString() {
-		return String.format("DISH:%s:%s:%s:%s:%s", this.getName(), this.getDescription(),
-				this.getPrice(), this.getRestockThreshold(),this.getRestockAmount());
-	}
+
 
 
 

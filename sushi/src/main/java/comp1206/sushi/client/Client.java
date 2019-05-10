@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import comp1206.sushi.Communication.ClientCommunications;
+import comp1206.sushi.common.Communication.ClientCommunications;
 import comp1206.sushi.common.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

@@ -99,7 +99,4 @@ public class Order extends Model implements Serializable {
 
 	}
 
-	public String toString() {
-		return String.format("ORDER:%s:%s", this.getName(), this.getContents().toString());
-	}
 }

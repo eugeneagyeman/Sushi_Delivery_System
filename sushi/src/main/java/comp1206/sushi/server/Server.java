@@ -1,10 +1,9 @@
 package comp1206.sushi.server;
 
-import comp1206.sushi.Communication.ServerCommunications;
-import comp1206.sushi.StockManagement.IngredientChecker;
-import comp1206.sushi.StockManagement.StockChecker;
-import comp1206.sushi.StockManagement.StockManagement;
+import comp1206.sushi.common.Communication.ServerCommunications;
+import comp1206.sushi.common.StockManagement.StockManagement;
 import comp1206.sushi.common.*;
+import comp1206.sushi.common.DataPersistence.DataPersistence;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -19,32 +18,29 @@ import java.util.regex.Pattern;
 
 import static java.lang.Integer.valueOf;
 
-public class Server implements ServerInterface,Serializable {
+public class Server implements ServerInterface, Serializable {
 
-    private  final Logger logger = LogManager.getLogger("Server");
-    private  final ArrayList<Order> orders = new ArrayList<Order>();
-    private  final ArrayList<User> users = new ArrayList<User>();
-    private  final ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
-    private  final ArrayList<Drone> drones = new ArrayList<Drone>();
-    private  final ArrayList<Staff> staff = new ArrayList<Staff>();
-    private  final ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
-    private  final ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
-    private  Restaurant restaurant;
-    private StockManagement stockManagement;
+    private final Logger logger = LogManager.getLogger("Server");
+    private volatile ArrayList<Order> orders = new ArrayList<Order>();
+    private volatile ArrayList<User> users = new ArrayList<User>();
+    private volatile ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
+    private volatile ArrayList<Drone> drones = new ArrayList<Drone>();
+    private volatile ArrayList<Staff> staff = new ArrayList<Staff>();
+    private volatile ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
+    private volatile ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
+    private volatile Restaurant restaurant;
+    private volatile StockManagement stockManagement;
     private ServerCommunications serverComms;
-
-    private BlockingQueue<Order> orderQueue;
-    private BlockingQueue<Dish> dishQueue;
-    private BlockingQueue<Ingredient> ingredientQueue;
+    private volatile BlockingQueue<Order> orderQueue;
+    private volatile BlockingQueue<Dish> dishQueue;
+    private volatile BlockingQueue<Ingredient> ingredientQueue;
     private DataPersistence test;
-
-
-
 
 
     public Server() {
         logger.info("Starting up server...");
         try {
+            stockManagement = new StockManagement();
             init();
             test = new DataPersistence(this);
         } catch (IOException e) {
@@ -53,18 +49,39 @@ public class Server implements ServerInterface,Serializable {
 
     }
 
+    public void setServerComms(ServerCommunications serverComms) {
+        this.serverComms = serverComms;
+    }
+
     private void init() throws IOException {
         serverComms = new ServerCommunications(this);
-        stockManagement = new StockManagement();
-        Postcode restaurantPostcode = new Postcode("SO17 1BJ");
-        restaurant = new Restaurant("Mock Restaurant", restaurantPostcode);
         orderQueue = new LinkedBlockingQueue<>(10);
         dishQueue = new LinkedBlockingQueue<>(10);
         ingredientQueue = new LinkedBlockingQueue<>(10);
-        loadConfiguration("Configuration.txt");
-        new Thread(new StockChecker(dishQueue), "Stock Checker").start();
-        new Thread(new IngredientChecker(ingredientQueue), "Ingredient Checker").start();
 
+        Postcode restaurantPostcode = new Postcode("SO17 1BJ");
+        restaurant = new Restaurant("Mock Restaurant", restaurantPostcode);
+        
+        loadConfiguration("Configuration.txt");
+        new Thread(new StockManagement.StockChecker(dishQueue), "Stock Checker").start();
+        new Thread(new StockManagement.IngredientChecker(ingredientQueue), "Ingredient Checker").start();
+
+    }
+
+    public BlockingQueue<Dish> getDishQueue() {
+        return dishQueue;
+    }
+
+    public void setDishQueue(BlockingQueue<Dish> dishQueue) {
+        this.dishQueue = dishQueue;
+    }
+
+    public BlockingQueue<Ingredient> getIngredientQueue() {
+        return ingredientQueue;
+    }
+
+    public void setIngredientQueue(BlockingQueue<Ingredient> ingredientQueue) {
+        this.ingredientQueue = ingredientQueue;
     }
 
     //Restaurant Details
@@ -81,6 +98,10 @@ public class Server implements ServerInterface,Serializable {
     @Override
     public Restaurant getRestaurant() {
         return restaurant;
+    }
+
+    public void setRestaurant(Restaurant restaurant) {
+        this.restaurant = restaurant;
     }
 
     //Dishes
@@ -100,9 +121,9 @@ public class Server implements ServerInterface,Serializable {
         }
 
         Dish newDish = new Dish(name, description, price, restockThreshold, restockAmount);
-        StockManagement.getDishesStock().put(newDish, 0);
+        this.stockManagement.getDishesStock().put(newDish, 0);
         try {
-            serverComms.sendMsg(newDish,true);
+            serverComms.sendMsg(newDish, true);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -118,7 +139,7 @@ public class Server implements ServerInterface,Serializable {
                 return existingDishes;
             }
         }
-        StockManagement.getDishesStock().put(dishToAdd,0);
+        this.stockManagement.getDishesStock().put(dishToAdd, 0);
         this.notifyUpdate();
         return dishToAdd;
     }
@@ -131,7 +152,7 @@ public class Server implements ServerInterface,Serializable {
 
     @Override
     public Map<Dish, Number> getDishStockLevels() {
-        return StockManagement.getDishesStock();
+        return this.stockManagement.getDishesStock();
     }
 
     @Override
@@ -191,16 +212,16 @@ public class Server implements ServerInterface,Serializable {
 
     @Override
     public void setStock(Dish dish, Number stock) {
-        Number oldValue = StockManagement.getDishesStock().get(dish);
-        StockManagement.getDishesStock().replace(dish, oldValue.intValue(), stock.intValue());
+        Number oldValue = this.stockManagement.getDishesStock().get(dish);
+        this.stockManagement.getDishesStock().replace(dish, oldValue.intValue(), stock.intValue());
         this.notifyUpdate();
     }
 
     //Ingredients
     @Override
     public void setStock(Ingredient ingredient, Number stock) {
-        Number oldValue = StockManagement.getDishesStock().get(ingredient);
-        StockManagement.getIngredientsStock().replace(ingredient, oldValue.intValue(), stock.intValue());
+        Number oldValue = this.stockManagement.getDishesStock().get(ingredient);
+        this.stockManagement.getIngredientsStock().replace(ingredient, oldValue.intValue(), stock.intValue());
         this.notifyUpdate();
     }
 
@@ -220,20 +241,20 @@ public class Server implements ServerInterface,Serializable {
             }
         }
         Ingredient mockIngredient = new Ingredient(name, unit, supplier, restockThreshold, restockAmount, weight);
-        StockManagement.getIngredientsStock().put(mockIngredient, 0);
+        this.stockManagement.getIngredientsStock().put(mockIngredient, 0);
         this.notifyUpdate();
         return mockIngredient;
     }
 
     @Override
     public void removeIngredient(Ingredient ingredient) {
-        StockManagement.getIngredientsStock().remove(ingredient);
+        this.stockManagement.getIngredientsStock().remove(ingredient);
         this.notifyUpdate();
     }
 
     @Override
     public Map<Ingredient, Number> getIngredientStockLevels() {
-        return StockManagement.getIngredientsStock();
+        return this.stockManagement.getIngredientsStock();
     }
 
     @Override
@@ -259,13 +280,16 @@ public class Server implements ServerInterface,Serializable {
         return suppliers;
     }
 
+    public void setSuppliers(ArrayList<Supplier> suppliers) {
+        this.suppliers = suppliers;
+    }
+
     @Override
     public Supplier addSupplier(String name, Postcode postcode) {
         Supplier new_supplier = new Supplier(name, postcode);
         suppliers.add(new_supplier);
         return new_supplier;
     }
-
 
     @Override
     public void removeSupplier(Supplier supplier) {
@@ -284,12 +308,16 @@ public class Server implements ServerInterface,Serializable {
         return drones;
     }
 
+    public void setDrones(ArrayList<Drone> drones) {
+        this.drones = drones;
+    }
+
     @Override
     public Drone addDrone(Number speed) {
-        Drone droneToAdd = new Drone(speed,getRestaurantPostcode(), serverComms);
-        droneToAdd.setQueue(ingredientQueue,orderQueue);
+        Drone droneToAdd = new Drone(speed, getRestaurantPostcode(), serverComms);
+        droneToAdd.setQueue(ingredientQueue, orderQueue);
         drones.add(droneToAdd);
-        (new Thread(droneToAdd, "Drone: "+droneToAdd.getSpeed())).start();
+        (new Thread(droneToAdd, "Drone: " + droneToAdd.getSpeed())).start();
         return droneToAdd;
     }
 
@@ -336,13 +364,17 @@ public class Server implements ServerInterface,Serializable {
         return staff;
     }
 
+    public void setStaff(ArrayList<Staff> staff) {
+        this.staff = staff;
+    }
+
     @Override
     public Staff addStaff(String name) {
         Staff staffToAdd = new Staff(name);
         staffToAdd.setDishBlockingQueue(dishQueue);
 
         staff.add(staffToAdd);
-        new Thread(staffToAdd,staffToAdd.getName()).start();
+        new Thread(staffToAdd, staffToAdd.getName()).start();
         return staffToAdd;
     }
 
@@ -364,8 +396,16 @@ public class Server implements ServerInterface,Serializable {
         return orders;
     }
 
+    public void setOrders(ArrayList<Order> orders) {
+        this.orders = orders;
+    }
+
     public BlockingQueue<Order> getOrderQueue() {
         return orderQueue;
+    }
+
+    public void setOrderQueue(BlockingQueue<Order> orderQueue) {
+        this.orderQueue = orderQueue;
     }
 
     public Order addOrder(String user) {
@@ -421,6 +461,10 @@ public class Server implements ServerInterface,Serializable {
         return postcodes;
     }
 
+    public void setPostcodes(ArrayList<Postcode> postcodes) {
+        this.postcodes = postcodes;
+    }
+
     @Override
     public Postcode addPostcode(String code) {
         //get current postcodes
@@ -434,7 +478,7 @@ public class Server implements ServerInterface,Serializable {
             }
         }
 
-        Postcode mock = new Postcode(code,restaurant);
+        Postcode mock = new Postcode(code, restaurant);
         postcodes.add(mock);
         this.notifyUpdate();
         return mock;
@@ -457,6 +501,10 @@ public class Server implements ServerInterface,Serializable {
         return users;
     }
 
+    public void setUsers(ArrayList<User> users) {
+        this.users = users;
+    }
+
     @Override
     public void removeUser(User user) {
         users.remove(user);
@@ -474,6 +522,14 @@ public class Server implements ServerInterface,Serializable {
     @Override
     public void loadConfiguration(String filename) {
         System.out.println("Loaded configuration: " + filename);
+        users.clear();
+        orders.clear();
+        getDishes().clear();
+        getIngredients().clear();
+        getStaff().clear();
+        getDrones().clear();
+        getPostcodes().clear();
+        getSuppliers().clear();
         try {
             new Configuration(filename);
 
@@ -481,6 +537,14 @@ public class Server implements ServerInterface,Serializable {
             System.err.println("File not found");
         }
 
+    }
+
+    public StockManagement getStockManagement() {
+        return stockManagement;
+    }
+
+    public void setStockManagement(StockManagement stockManagement) {
+        this.stockManagement = stockManagement;
     }
 
     @Override
@@ -491,7 +555,7 @@ public class Server implements ServerInterface,Serializable {
     @Override
     public void notifyUpdate() {
         listeners.forEach(listener -> listener.updated(new UpdateEvent()));
-        //test.writeState(this);
+        //test.writeState();
     }
 
 
@@ -500,8 +564,13 @@ public class Server implements ServerInterface,Serializable {
         private Matcher matcher;
 
         Configuration(String filename) throws IOException {
-            sc = new Scanner(new FileReader(filename));
-            parse();
+            if(!filename.endsWith(".txt")) {
+                test.readState(filename);
+            } else {
+                sc = new Scanner(new FileReader(filename));
+                parse();
+            }
+
         }
 
         void parse() throws IOException {
@@ -647,7 +716,7 @@ public class Server implements ServerInterface,Serializable {
                 Integer restock_threshold = valueOf(matcher.group(4));
                 Integer restock_amount = valueOf(matcher.group(5));
 
-                Dish builtDish = new Dish(dishName,description,price,restock_threshold,restock_amount);
+                Dish builtDish = new Dish(dishName, description, price, restock_threshold, restock_amount);
                 addDish(builtDish);
 
                 Pattern ingredientsDishPattern = Pattern.compile("((\\d+) \\* (\\w+))");
@@ -703,7 +772,8 @@ public class Server implements ServerInterface,Serializable {
         void droneParse(String drone) {
             /*System.out.println("Drone: " + drone.split(":")[1]);
             System.out.println();*/
-            addDrone(valueOf(drone.split(":")[1]));
+            Number speed = Double.valueOf(drone.split(":")[1]).intValue();
+            addDrone(speed);
         }
 
         void orderParse(String order) {
@@ -725,8 +795,7 @@ public class Server implements ServerInterface,Serializable {
                 Matcher orderMatcher = dishOrderPattern.matcher(matcher.group(2));
 
                 while (orderMatcher.find()) {
-                    //System.out.println("Dish: " + orderMatcher.group(3));
-                    //System.out.println("Quantity: " + orderMatcher.group(2));
+
 
                     Dish dishToAdd = stockManagement.getDish(orderMatcher.group(3));
                     Integer quantity = valueOf(orderMatcher.group(2));

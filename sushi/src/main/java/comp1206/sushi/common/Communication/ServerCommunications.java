@@ -1,4 +1,4 @@
-package comp1206.sushi.Communication;
+package comp1206.sushi.common.Communication;
 
 import comp1206.sushi.common.*;
 import comp1206.sushi.server.Server;
@@ -14,15 +14,14 @@ public class ServerCommunications extends Thread implements Serializable {
     private static ServerSocket serverSocket;
 
 
-    protected static ObjectOutputStream outputStream;
-    protected static ObjectInputStream inputStream;
-    static Server server;
-    ClientListener clientListener;
+    protected static transient ObjectOutputStream outputStream;
+    protected static transient ObjectInputStream inputStream;
+    static transient Server server;
+    transient ClientListener clientListener;
 
     public ServerCommunications(Server aServer) throws IOException {
         serverSocket = new ServerSocket(3000);
         server = aServer;
-        clientListener = new ClientListener();
         this.start();
     }
 
@@ -33,10 +32,9 @@ public class ServerCommunications extends Thread implements Serializable {
                 System.out.println("Waiting for client on port " +
                         serverSocket.getLocalPort() + "...");
 
-                Socket serverSocket = this.serverSocket.accept();
-                this.outputStream = new ObjectOutputStream(serverSocket.getOutputStream());
+                Socket serverSocket = ServerCommunications.serverSocket.accept();
+                outputStream = new ObjectOutputStream(serverSocket.getOutputStream());
                 inputStream = new ObjectInputStream(serverSocket.getInputStream());
-                clientListener.getActiveClients().add(this);
 
                 for (Dish dishes : server.getDishes()) {
                     outputStream.writeObject(dishes);
@@ -50,6 +48,7 @@ public class ServerCommunications extends Thread implements Serializable {
                     outputStream.writeObject(user);
                 }
 
+                clientListener = new ClientListener();
                 this.clientListener.start();
 
             } catch (SocketTimeoutException s) {

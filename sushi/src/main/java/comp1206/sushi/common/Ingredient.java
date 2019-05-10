@@ -75,8 +75,5 @@ public class Ingredient extends Model implements Serializable {
 		this.weight = weight;
 	}
 
-	public String toString() {
-		return String.format("INGREDIENT:%s:%s:%s:%s:%s", this.getName(), this.getUnit(),
-				this.getSupplier(), this.getRestockThreshold(),this.getRestockAmount());
-	}
+
 }

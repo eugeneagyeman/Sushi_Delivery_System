@@ -1,7 +1,7 @@
 package comp1206.sushi.common;
 
-import comp1206.sushi.Communication.ServerCommunications;
-import comp1206.sushi.StockManagement.StockManagement;
+import comp1206.sushi.common.Communication.ServerCommunications;
+import comp1206.sushi.common.StockManagement.StockManagement;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -23,6 +23,7 @@ public class Drone extends Model implements Runnable, Serializable {
     private BlockingQueue<Ingredient> ingredientQueueInstance;
     private BlockingQueue<Order> orderQueueInstance;
     private ServerCommunications updateCommunications;
+    private StockManagement stockManagement;
     private volatile boolean exit = false;
 
     public Drone(Number speed, Postcode restaurantBase, ServerCommunications updateCommunications) {
@@ -142,7 +143,7 @@ public class Drone extends Model implements Runnable, Serializable {
         setStatus(ingredient.getName() + " Collected. Returning to base...");
         travel(distance, speed);
         synchronized (ingredient) {
-            StockManagement.restockIngredient(ingredient);
+            new StockManagement().restockIngredient(ingredient);
         }
         setProgress(0);
         notifyUpdate();
@@ -159,7 +160,7 @@ public class Drone extends Model implements Runnable, Serializable {
         Map<Dish, Number> orderContents = order.getContents();
 
         dishCheckLock.lock();
-        Map<Dish, Number> dishStock = StockManagement.getDishesStock();
+        Map<Dish, Number> dishStock = new StockManagement().getDishesStock();
 
         for (Map.Entry<Dish, Number> entry : orderContents.entrySet()) {
             Dish currentDish = entry.getKey();

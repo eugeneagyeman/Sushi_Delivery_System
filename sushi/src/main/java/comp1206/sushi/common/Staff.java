@@ -1,6 +1,6 @@
 package comp1206.sushi.common;
 
-import comp1206.sushi.StockManagement.StockManagement;
+import comp1206.sushi.common.StockManagement.StockManagement;
 
 import java.io.Serializable;
 import java.util.Map;
@@ -13,10 +13,12 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Staff extends Model implements Runnable, Serializable {
     public static final long serialVersionUID = 1755448731277423394L;
     private final static Lock ingredientsLock = new ReentrantLock(true);
+    private final static Lock dishesLock = new ReentrantLock(true);
     private String name;
     private String status;
     private Number fatigue;
     private BlockingQueue<Dish> dishBlockingQueue;
+    private StockManagement stockManagement;
     private volatile boolean exit = false;
 
 
@@ -33,11 +35,11 @@ public class Staff extends Model implements Runnable, Serializable {
     public void build(Dish dish) throws InterruptedException {
         Map<Ingredient, Number> dishrecipe = dish.getRecipe();
         boolean enoughIngredients = true;
+        int restockAmount = dish.getRestockAmount().intValue();
 
 
         ingredientsLock.lock();
-
-        Map<Ingredient, Number> ingredientsStock = StockManagement.getIngredientsStock();
+        Map<Ingredient, Number> ingredientsStock = new StockManagement().getIngredientsStock();
         for (Map.Entry<Ingredient, Number> entry : dishrecipe.entrySet()) {
 
             Ingredient currentIngredient = entry.getKey();
@@ -48,11 +50,11 @@ public class Staff extends Model implements Runnable, Serializable {
                     + "\tRecipe Quantity: " + recipeQuantity + "\t"
                     + "\t Currently in Stock:" + currentIngredientAmount);*/
 
-            if (recipeQuantity.intValue() >= currentIngredientAmount) {
+            if (recipeQuantity.intValue() * restockAmount > currentIngredientAmount) {
                 enoughIngredients = false;
             } else {
                 dishrecipe.forEach((key, value) -> {
-                    ingredientsStock.replace(key, ingredientsStock.get(key).intValue() - value.intValue());
+                    ingredientsStock.replace(key, ingredientsStock.get(key).intValue() - (value.intValue()*restockAmount));
                 });
             }
         }
@@ -64,13 +66,18 @@ public class Staff extends Model implements Runnable, Serializable {
             int randomBuildTime = ThreadLocalRandom.current().nextInt(60000 - 20000) + 20000;
             Thread.sleep(randomBuildTime);
 
-            Map<Dish, Number> dishesStock = StockManagement.getDishesStock();
+            dishesLock.lock();
+            Map<Dish, Number> dishesStock = new StockManagement().getDishesStock();
+
             int dishQuantity = dishesStock.get(dish).intValue();
-            dishesStock.replace(dish, dishQuantity + 1);
+            dishesStock.replace(dish, dishQuantity + restockAmount);
 
             System.out.println(Thread.currentThread().getName() + " has successfully created: " + dish.getName() + "\n");
+            this.setFatigue(fatigue.intValue()+ThreadLocalRandom.current().nextInt(10));
+            dishesLock.unlock();
         } else {
             System.out.println("There are not enough ingredients...\n");
+
         }
         //}
     }
@@ -110,6 +117,11 @@ public class Staff extends Model implements Runnable, Serializable {
         try {
             Thread.sleep(100);
             System.out.println(Thread.currentThread().getName()+" has started");
+            if(this.getFatigue().intValue()>=100) {
+                this.setStatus("Not at work due to fatigue");
+                Thread.sleep(180000);
+                this.setFatigue(0);
+            }
             while (StockManagement.isRestockDishesEnabled()) {
                 if (dishBlockingQueue.isEmpty()) {
                     setStatus("Idle");

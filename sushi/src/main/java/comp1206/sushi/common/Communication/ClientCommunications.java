@@ -1,4 +1,4 @@
-package comp1206.sushi.Communication;
+package comp1206.sushi.common.Communication;
 
 import comp1206.sushi.client.Client;
 import comp1206.sushi.common.Dish;
@@ -7,17 +7,16 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import comp1206.sushi.common.*;
 
 
 public class ClientCommunications extends Thread {
-    String serverName;
-    int port;
-    ObjectInputStream clientInputStream;
-    ObjectOutputStream clientOutputStream;
-    Client client;
+    transient String serverName;
+    transient int port;
+    transient ObjectInputStream clientInputStream;
+    transient ObjectOutputStream clientOutputStream;
+    transient Client client;
 
     public ClientCommunications(Client aClient) {
         serverName = "localhost";

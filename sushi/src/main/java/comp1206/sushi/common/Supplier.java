@@ -37,8 +37,5 @@ public class Supplier extends Model implements Serializable {
 		return postcode.getDistance();
 	}
 
-	@Override
-	public String toString() {
-		return String.format("SUPPLIER:%s:%s:%s", name, postcode, distance);
-	}
+
 }

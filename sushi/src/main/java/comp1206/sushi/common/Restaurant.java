@@ -32,8 +32,5 @@ public class Restaurant implements Serializable {
 		this.location = location;
 	}
 
-	@Override
-	public String toString() {
-		return String.format("RESTAURANT:%s:%s", this.getName(), this.getLocation());
-	}
+
 }

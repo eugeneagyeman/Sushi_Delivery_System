@@ -113,7 +113,4 @@ public class Postcode extends Model implements Serializable {
 		}
 	}
 
-	public String toString() {
-		return String.format("POSTCODE:%s", this.getName());
-	}
 }
