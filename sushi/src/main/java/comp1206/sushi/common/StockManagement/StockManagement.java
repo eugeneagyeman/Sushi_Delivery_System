@@ -20,26 +20,30 @@ public class StockManagement implements Serializable {
     private final static Lock ingredientsLock = new ReentrantLock(true);
     static boolean restockIngredientsEnabled = true;
     static boolean restockDishesEnabled = true;
-    private  volatile Map<Ingredient, Number> ingredientsStock = new ConcurrentHashMap<>();
-    private  volatile Map<Dish, Number> dishesStock = new ConcurrentHashMap<>();
-    private  volatile List<Dish> dishes;
-    private  volatile List<Ingredient> ingredients;
+    private  Map<Ingredient, Number> ingredientsStock = new ConcurrentHashMap<>();
+    private  Map<Dish, Number> dishesStock = new ConcurrentHashMap<>();
+    private  List<Dish> dishes;
+    private  List<Ingredient> ingredients;
 
+    public StockManagement() {
 
-    public static boolean isRestockIngredientsEnabled() {
-        return restockIngredientsEnabled;
     }
 
-    public static void setRestockIngredientsEnabled(boolean restockIngredientsEnabled) {
-        StockManagement.restockIngredientsEnabled = restockIngredientsEnabled;
-    }
-
-    public static boolean isRestockDishesEnabled() {
-        return restockDishesEnabled;
-    }
 
     public static void setRestockDishesEnabled(boolean restockDishesEnabled) {
         StockManagement.restockDishesEnabled = restockDishesEnabled;
+    }
+
+    public boolean isRestockDishesEnabled() {
+        return restockDishesEnabled;
+    }
+
+    public void setRestockIngredientsEnabled(boolean restockIngredientsEnabled) {
+        StockManagement.restockIngredientsEnabled = restockIngredientsEnabled;
+    }
+
+    public static boolean isRestockIngredientsEnabled() {
+        return restockIngredientsEnabled;
     }
 
     public void setIngredientsStock(Map<Ingredient, Number> ingredients) {
@@ -111,18 +115,8 @@ public class StockManagement implements Serializable {
             ingredientsSet = ingredientsStock.keySet();
 
 
-        ingredients = Collections.synchronizedList(new ArrayList<Ingredient>(ingredientsSet));
+        ingredients = new ArrayList<Ingredient>(ingredientsSet);
         return ingredients;
-    }
-
-    public void setIngredients(ArrayList<Ingredient> is) {
-        ingredientsLock.lock();
-        try {
-            ingredients = is;
-
-        } finally {
-            ingredientsLock.unlock();
-        }
     }
 
     public void dishIngredientFinder(String itemName, String itemQuantity) {
@@ -140,84 +134,6 @@ public class StockManagement implements Serializable {
     }
 
 
-    public static class IngredientChecker implements Runnable, Serializable {
-        private final BlockingQueue<Ingredient> ingredientsQueue;
-
-        public IngredientChecker(BlockingQueue<Ingredient> queue) {
-            this.ingredientsQueue = queue;
-        }
-
-        @Override
-        public void run() {
-            try {
-                while (isRestockIngredientsEnabled()) {
-                    checkIngredients();
-                }
-            } catch (InterruptedException e) {
-                System.out.println(Thread.currentThread().getName() + " thread interrupted");
-                Thread.currentThread().interrupt();
-            }
-        }
-
-        private void checkIngredients() throws InterruptedException {
-                if (ingredientsQueue.remainingCapacity()==0) {
-                    System.out.println("Queue is full " + Thread.currentThread().getName() + " is waiting");
-                }
-                for (Ingredient ingredient : new StockManagement().getIngredientsStock().keySet()) {
-                    int quantity = new StockManagement().getIngredientsStock().get(ingredient).intValue();
-                    int restockThreshold = ingredient.getRestockThreshold().intValue();
-
-                    if (quantity < restockThreshold) {
-                        System.out.println("Ingredient Queue: Adding " + ingredient.getName());
-                        ingredientsQueue.put(ingredient);
-                    }
-                }
-                Thread.sleep(180000);
-        }
-    }
-
-    public static class StockChecker implements Runnable, Serializable {
-        private final BlockingQueue<Dish> dishesQueue;
-
-        public StockChecker(BlockingQueue<Dish> queue) {
-            this.dishesQueue = queue;
-        }
-
-        @Override
-        public void run() {
-            try {
-                while (isRestockDishesEnabled()) {
-                    checkDishes();
-                }
-            } catch (InterruptedException e) {
-                System.out.println(Thread.currentThread().getName() + " thread interrupted");
-                Thread.currentThread().interrupt();
-            } catch(NullPointerException ignored) {
-
-            }
-        }
-
-        private void checkDishes() throws InterruptedException, NullPointerException {
-            while (dishesQueue.remainingCapacity() == 0) {
-                System.out.println("Queue is full " + Thread.currentThread().getName() + " is waiting");
-                Thread.sleep(10000);
-            }
-
-            for (Dish dish : new StockManagement().getDishesStock().keySet()) {
-
-                int quantity = new StockManagement().getDishesStock().get(dish).intValue();
-                int restockThreshold = dish.getRestockThreshold().intValue();
-
-                if (quantity < restockThreshold) {
-                    System.out.println("Putting " + dish.getName() + " in the dishesQueue");
-                    dishesQueue.put(dish);
-                    Thread.sleep(1000);
-                }
-            }
-
-        }
-    }
-
     public  void setDishesStock(Map<Dish, Number> dishes) {
         dishesStock = dishes;
     }
@@ -229,9 +145,9 @@ public class StockManagement implements Serializable {
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
         ArrayList<Dish> serialisedDish = new ArrayList<>(getDishes());
-        ArrayList<Ingredient> serialisedIngredients = new ArrayList<>(new StockManagement().getIngredients());
-        ConcurrentHashMap ingredientNumberHashMap = new ConcurrentHashMap<>(new StockManagement().getIngredientsStock());
-        ConcurrentHashMap<Dish,Number> dishNumberHashMap = new ConcurrentHashMap<>(new StockManagement().getDishesStock());
+        ArrayList<Ingredient> serialisedIngredients = (ArrayList<Ingredient>) getIngredients();
+        ConcurrentHashMap ingredientNumberHashMap = (ConcurrentHashMap) getIngredientsStock();
+        ConcurrentHashMap<Dish,Number> dishNumberHashMap = (ConcurrentHashMap<Dish, Number>) getDishesStock();
 
         ArrayList<Object> stockData = new ArrayList<>();
         stockData.add(
@@ -247,12 +163,16 @@ public class StockManagement implements Serializable {
     }
 
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
-        ArrayList<Object> deserialisedData = new ArrayList<>();
-        deserialisedData = (ArrayList<Object>) ois.readObject();
-        setIngredients((ArrayList<Ingredient>) deserialisedData.get(1));
-        setIngredientsStock((ConcurrentHashMap<Ingredient,Number>)deserialisedData.get(2));
-        setDishes((ArrayList<Dish>) deserialisedData.get(0) );
-        setDishesStock((ConcurrentHashMap<Dish, Number>) deserialisedData.get(3));
+        ArrayList<Object> deserializedData = new ArrayList<>();
+        deserializedData = (ArrayList<Object>) ois.readObject();
+        setIngredients((ArrayList<Ingredient>) deserializedData.get(1));
+        setIngredientsStock((ConcurrentHashMap<Ingredient,Number>)deserializedData.get(2));
+        setDishes((ArrayList<Dish>) deserializedData.get(0) );
+        setDishesStock((ConcurrentHashMap<Dish, Number>) deserializedData.get(3));
+    }
+
+    private void setIngredients(ArrayList<Ingredient> ingredients) {
+        this.ingredients = ingredients;
     }
 
 }

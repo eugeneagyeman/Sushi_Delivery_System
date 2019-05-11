@@ -1,6 +1,8 @@
 package comp1206.sushi.server;
 
 import comp1206.sushi.common.Communication.ServerCommunications;
+import comp1206.sushi.common.StockManagement.IngredientChecker;
+import comp1206.sushi.common.StockManagement.StockChecker;
 import comp1206.sushi.common.StockManagement.StockManagement;
 import comp1206.sushi.common.*;
 import comp1206.sushi.common.DataPersistence.DataPersistence;
@@ -21,19 +23,19 @@ import static java.lang.Integer.valueOf;
 public class Server implements ServerInterface, Serializable {
 
     private final Logger logger = LogManager.getLogger("Server");
-    private volatile ArrayList<Order> orders = new ArrayList<Order>();
-    private volatile ArrayList<User> users = new ArrayList<User>();
-    private volatile ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
-    private volatile ArrayList<Drone> drones = new ArrayList<Drone>();
-    private volatile ArrayList<Staff> staff = new ArrayList<Staff>();
-    private volatile ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
-    private volatile ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
-    private volatile Restaurant restaurant;
-    private volatile StockManagement stockManagement;
+    private  ArrayList<Order> orders = new ArrayList<Order>();
+    private  ArrayList<User> users = new ArrayList<User>();
+    private  ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
+    private  ArrayList<Drone> drones = new ArrayList<Drone>();
+    private  ArrayList<Staff> staff = new ArrayList<Staff>();
+    private  ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
+    private  ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
+    private Restaurant restaurant;
+    private StockManagement stockManagement;
     private ServerCommunications serverComms;
-    private volatile BlockingQueue<Order> orderQueue;
-    private volatile BlockingQueue<Dish> dishQueue;
-    private volatile BlockingQueue<Ingredient> ingredientQueue;
+    private BlockingQueue<Order> orderQueue;
+    private BlockingQueue<Dish> dishQueue;
+    private BlockingQueue<Ingredient> ingredientQueue;
     private DataPersistence test;
 
 
@@ -53,8 +55,12 @@ public class Server implements ServerInterface, Serializable {
         this.serverComms = serverComms;
     }
 
-    private void init() throws IOException {
-        serverComms = new ServerCommunications(this);
+    private void init() {
+        try {
+            serverComms = new ServerCommunications(this);
+        } catch (IOException e) {
+            System.out.println("IO Error: Address already in use");
+        }
         orderQueue = new LinkedBlockingQueue<>(10);
         dishQueue = new LinkedBlockingQueue<>(10);
         ingredientQueue = new LinkedBlockingQueue<>(10);
@@ -63,8 +69,8 @@ public class Server implements ServerInterface, Serializable {
         restaurant = new Restaurant("Mock Restaurant", restaurantPostcode);
         
         loadConfiguration("Configuration.txt");
-        new Thread(new StockManagement.StockChecker(dishQueue), "Stock Checker").start();
-        new Thread(new StockManagement.IngredientChecker(ingredientQueue), "Ingredient Checker").start();
+        new Thread(new StockChecker(stockManagement,dishQueue), "Stock Checker").start();
+        new Thread(new IngredientChecker(stockManagement,ingredientQueue), "Ingredient Checker").start();
 
     }
 
@@ -126,6 +132,8 @@ public class Server implements ServerInterface, Serializable {
             serverComms.sendMsg(newDish, true);
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (NullPointerException e) {
+            System.out.println("Dish Added: No clients");
         }
         this.notifyUpdate();
         return newDish;
@@ -157,7 +165,7 @@ public class Server implements ServerInterface, Serializable {
 
     @Override
     public void setRestockingIngredientsEnabled(boolean enabled) {
-        StockManagement.setRestockIngredientsEnabled(enabled);
+        stockManagement.setRestockIngredientsEnabled(enabled);
     }
 
     @Override
@@ -315,6 +323,7 @@ public class Server implements ServerInterface, Serializable {
     @Override
     public Drone addDrone(Number speed) {
         Drone droneToAdd = new Drone(speed, getRestaurantPostcode(), serverComms);
+        droneToAdd.setStockManagement(stockManagement);
         droneToAdd.setQueue(ingredientQueue, orderQueue);
         drones.add(droneToAdd);
         (new Thread(droneToAdd, "Drone: " + droneToAdd.getSpeed())).start();
@@ -371,6 +380,7 @@ public class Server implements ServerInterface, Serializable {
     @Override
     public Staff addStaff(String name) {
         Staff staffToAdd = new Staff(name);
+        staffToAdd.setStockManagement(stockManagement);
         staffToAdd.setDishBlockingQueue(dishQueue);
 
         staff.add(staffToAdd);

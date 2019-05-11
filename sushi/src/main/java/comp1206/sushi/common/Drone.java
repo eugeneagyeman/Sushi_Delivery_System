@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class Drone extends Model implements Runnable, Serializable {
@@ -23,7 +25,7 @@ public class Drone extends Model implements Runnable, Serializable {
     private BlockingQueue<Ingredient> ingredientQueueInstance;
     private BlockingQueue<Order> orderQueueInstance;
     private ServerCommunications updateCommunications;
-    private StockManagement stockManagement;
+    private static StockManagement stockManagement;
     private volatile boolean exit = false;
 
     public Drone(Number speed, Postcode restaurantBase, ServerCommunications updateCommunications) {
@@ -143,9 +145,14 @@ public class Drone extends Model implements Runnable, Serializable {
         setStatus(ingredient.getName() + " Collected. Returning to base...");
         travel(distance, speed);
         synchronized (ingredient) {
-            new StockManagement().restockIngredient(ingredient);
+            try {
+                stockManagement.restockIngredient(ingredient);
+            } catch (NullPointerException e) {
+                System.out.println("Error: Attempting to restockIngredient unsuccessful");
+            }
         }
         setProgress(0);
+        setBattery(getBattery().intValue()- ThreadLocalRandom.current().nextInt(5));
         notifyUpdate();
 
     }
@@ -157,12 +164,12 @@ public class Drone extends Model implements Runnable, Serializable {
         setProgress(null);
         setStatus("Preparing to deliver order: " + order.getName(), order);
 
-        Map<Dish, Number> orderContents = order.getContents();
+        AtomicReference<Map<Dish, Number>> orderContents = new AtomicReference<>(order.getContents());
 
         dishCheckLock.lock();
-        Map<Dish, Number> dishStock = new StockManagement().getDishesStock();
+        Map<Dish, Number> dishStock = stockManagement.getDishesStock();
 
-        for (Map.Entry<Dish, Number> entry : orderContents.entrySet()) {
+        for (Map.Entry<Dish, Number> entry : orderContents.get().entrySet()) {
             Dish currentDish = entry.getKey();
             Number orderQty = entry.getValue();
             int stockAmt;
@@ -170,16 +177,19 @@ public class Drone extends Model implements Runnable, Serializable {
                 stockAmt = dishStock.get(currentDish).intValue();
             } catch (NullPointerException emptyDishes) {
                 stockAmt = 0;
+                //
             }
 
-            if (orderQty.intValue() > stockAmt) {
-                setStatus("Cannot deliver order" + order.getName() + "as dishes still need to be made", order);
-                System.out.println("Cannot deliver order" + order.getName() + "as dishes still need to be made");
+            if (stockAmt <= orderQty.intValue()) {
+                setStatus("Cannot deliver order" + order.getName() + " as dishes still need to be made", order);
+                System.out.println("Cannot deliver order" + order.getName() + " as dishes still need to be made");
                 enoughDishes = false;
             } else {
                 setStatus("Dishes available, getting ready to deliver.", order);
-
-                    orderContents.forEach((key, value) -> dishStock.replace(key, dishStock.get(key).intValue() - value.intValue()));
+                for (Map.Entry<Dish, Number> e : orderContents.get().entrySet()) {
+                    Dish key = e.getKey();
+                    Number value = e.getValue();
+                }
 
             }
         }
@@ -193,6 +203,7 @@ public class Drone extends Model implements Runnable, Serializable {
             setStatus("Complete");
             order.setStatus("Delivered");
             updateCommunications.sendMsg(order.getOrderID() + ":" + order.getStatus(), false);
+            setBattery(getBattery().intValue()- ThreadLocalRandom.current().nextInt(5));
             travel(customerDistance, speed);
         }
         return enoughDishes;
@@ -217,27 +228,36 @@ public class Drone extends Model implements Runnable, Serializable {
     public void run() {
         while (!exit) {
             try {
-                Thread.sleep(100);
-                System.out.println(Thread.currentThread().getName() + " has started");
+                System.out.println(Thread.currentThread().getName() + ": Initialised");
 
                 while (StockManagement.isRestockIngredientsEnabled()) {
-                    if (ingredientQueueInstance.isEmpty() && orderQueueInstance.isEmpty()) {
-                        this.setStatus("Idle");
-                    } else if (orderQueueInstance.peek() != null) {
-                        Order orderToDeliver = orderQueueInstance.take();
-                        synchronized (orderToDeliver) {
-                            if (!grabOrder(orderToDeliver)) {
-                                orderQueueInstance.put(orderToDeliver);
-                                System.out.println("Order put back in queue");
-                                return;
+                    while(!(getBattery().intValue() <= 0)){
+                        if (ingredientQueueInstance.isEmpty() && orderQueueInstance.isEmpty()) {
+                            this.setStatus("Idle");
+                        } else if (orderQueueInstance.peek() != null) {
+                            Order orderToDeliver = orderQueueInstance.take();
+                            synchronized (orderToDeliver) {
+                                if (!grabOrder(orderToDeliver)) {
+                                    orderQueueInstance.put(orderToDeliver);
+                                    System.out.println("Order put back in queue");
+                                }
                             }
-                        }
-                        System.out.println("Couldn't deliver");
+                            System.out.println("Couldn't deliver");
 
-                    } else if (ingredientQueueInstance.peek() != null) {
-                        Ingredient ingredientToCollect = ingredientQueueInstance.take();
-                        grabIngredient(ingredientToCollect, base);
+                        } else if (ingredientQueueInstance.peek() != null) {
+                            Ingredient ingredientToCollect = ingredientQueueInstance.take();
+                            grabIngredient(ingredientToCollect, base);
+                        }
                     }
+
+                    if(getBattery().intValue() <= 0) {
+                        setStatus("Battery Depleted...Charging");
+                        Thread.sleep(120000);
+                        setBattery(100);
+                        setProgress(null);
+                        setStatus("Idle");
+                    }
+
                 }
             } catch (InterruptedException | IOException e) {
                 e.printStackTrace();
@@ -252,11 +272,8 @@ public class Drone extends Model implements Runnable, Serializable {
         this.exit = true;
     }
 
-    private class UnableToDeliverException extends Exception {
-// --Commented out by Inspection START (2019-05-09 19:38):
-//        public UnableToDeliverException(String message) {
-//            super(message);
-//        }
-// --Commented out by Inspection STOP (2019-05-09 19:38)
+    public void setStockManagement(StockManagement stockManagement) {
+        Drone.stockManagement = stockManagement;
     }
+
 }

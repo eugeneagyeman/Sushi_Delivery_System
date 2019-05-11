@@ -13,7 +13,7 @@ SUPPLIER:Sushi R Us:SO17 2NJ
 SUPPLIER:Sushi For 4U:SO17 2LB
 
 INGREDIENT:Rice:Grams:Sushi Supplies:1000:5000:1
-INGREDIENT:Vinegar:Grams:Sushi Supplies:100:1000:5
+INGREDIENT:Vinegar:Grams:Sushi Supplies:100:1000:1
 INGREDIENT:Salt:Grams:Sushi Supplies:50:100:1
 INGREDIENT:Avocado:Units:Sushi R Us:5:10:10
 

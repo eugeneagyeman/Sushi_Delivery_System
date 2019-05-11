@@ -35,26 +35,26 @@ public class Staff extends Model implements Runnable, Serializable {
     public void build(Dish dish) throws InterruptedException {
         Map<Ingredient, Number> dishrecipe = dish.getRecipe();
         boolean enoughIngredients = true;
-        int restockAmount = dish.getRestockAmount().intValue();
+        Number restockAmount = dish.getRestockAmount().intValue();
 
 
         ingredientsLock.lock();
-        Map<Ingredient, Number> ingredientsStock = new StockManagement().getIngredientsStock();
+        Map<Ingredient, Number> ingredientsStock = stockManagement.getIngredientsStock();
         for (Map.Entry<Ingredient, Number> entry : dishrecipe.entrySet()) {
 
             Ingredient currentIngredient = entry.getKey();
             Number recipeQuantity = entry.getValue();
-            int currentIngredientAmount = ingredientsStock.get(currentIngredient).intValue();
+            Number currentIngredientAmount = ingredientsStock.get(currentIngredient).intValue();
 
             /*System.out.println("Ingredient: " + currentIngredient.getName() + "\tRecipe: " + dish.getName()
                     + "\tRecipe Quantity: " + recipeQuantity + "\t"
                     + "\t Currently in Stock:" + currentIngredientAmount);*/
 
-            if (recipeQuantity.intValue() * restockAmount > currentIngredientAmount) {
+            if (recipeQuantity.intValue() * restockAmount.intValue() > currentIngredientAmount.intValue()) {
                 enoughIngredients = false;
             } else {
                 dishrecipe.forEach((key, value) -> {
-                    ingredientsStock.replace(key, ingredientsStock.get(key).intValue() - (value.intValue()*restockAmount));
+                    ingredientsStock.replace(key, ingredientsStock.get(key).intValue() - (value.intValue()*restockAmount.intValue()));
                 });
             }
         }
@@ -67,10 +67,10 @@ public class Staff extends Model implements Runnable, Serializable {
             Thread.sleep(randomBuildTime);
 
             dishesLock.lock();
-            Map<Dish, Number> dishesStock = new StockManagement().getDishesStock();
+            Map<Dish, Number> dishesStock = stockManagement.getDishesStock();
 
-            int dishQuantity = dishesStock.get(dish).intValue();
-            dishesStock.replace(dish, dishQuantity + restockAmount);
+            Number dishQuantity = dishesStock.get(dish).intValue();
+            dishesStock.replace(dish, dishQuantity.intValue() + restockAmount.intValue());
 
             System.out.println(Thread.currentThread().getName() + " has successfully created: " + dish.getName() + "\n");
             this.setFatigue(fatigue.intValue()+ThreadLocalRandom.current().nextInt(10));
@@ -121,8 +121,9 @@ public class Staff extends Model implements Runnable, Serializable {
                 this.setStatus("Not at work due to fatigue");
                 Thread.sleep(180000);
                 this.setFatigue(0);
+                this.setStatus("Idle");
             }
-            while (StockManagement.isRestockDishesEnabled()) {
+            while (stockManagement.isRestockDishesEnabled()) {
                 if (dishBlockingQueue.isEmpty()) {
                     setStatus("Idle");
                 } else {
@@ -135,8 +136,7 @@ public class Staff extends Model implements Runnable, Serializable {
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (NullPointerException uninitialised) {
-            System.out.println("Error");
-
+            uninitialised.printStackTrace();
         }}
     }
 
@@ -149,4 +149,11 @@ public class Staff extends Model implements Runnable, Serializable {
         return "STAFF:"+this.getName()+":"+this.getStatus()+":"+this.getFatigue();
     }
 
+    public StockManagement getStockManagement() {
+        return stockManagement;
+    }
+
+    public void setStockManagement(StockManagement stockManagement) {
+        this.stockManagement = stockManagement;
+    }
 }
