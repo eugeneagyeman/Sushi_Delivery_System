@@ -17,28 +17,26 @@ public class DataPersistence {
     FileOutputStream fos;
     ObjectOutputStream out;
 
-
-
-
     FileInputStream fis = null;
     ObjectInputStream in = null;
 
-    private volatile Server server;
-    Timer timer;
+    private Server server;
+    private Timer timer;
 
     public DataPersistence(Server server) throws IOException {
 
         this.server = server;
         this.timer = new Timer();
-        fos = new FileOutputStream("ServerDataPersistence",false);
-        out = new ObjectOutputStream(fos);
+
 
         timer.scheduleAtFixedRate(new Refresh(),0,30000);
 
 
     }
 
-    public void writeState() {
+    public void writeState() throws IOException{
+        fos = new FileOutputStream("ServerDataPersistence",false);
+        out = new ObjectOutputStream(fos);
         ArrayList<Object> data = new ArrayList<>();
 
         try {
@@ -75,13 +73,19 @@ public class DataPersistence {
 
         @Override
         public void run() {
-            writeState();
+            try {
+                writeState();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
     public void readState(String objectToPersist) throws IOException {
         fis = new FileInputStream(objectToPersist);
         in = new ObjectInputStream(fis);
+        server.stopThreads();
+        server.clearPanels();
         ArrayList<Object> deserialisedData = new ArrayList<>();
 
         try {
@@ -104,6 +108,7 @@ public class DataPersistence {
         server.setOrderQueue((BlockingQueue<Order>) deserialisedData.get(8));
         server.setIngredientQueue((BlockingQueue<Ingredient>) deserialisedData.get(9));
         server.setDishQueue((BlockingQueue<Dish>) deserialisedData.get(10));
+        server.startThreads();
         server.notifyUpdate();
     }
 

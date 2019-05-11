@@ -38,7 +38,7 @@ public class StockManagement implements Serializable {
         return restockDishesEnabled;
     }
 
-    public void setRestockIngredientsEnabled(boolean restockIngredientsEnabled) {
+    public static void setRestockIngredientsEnabled(boolean restockIngredientsEnabled) {
         StockManagement.restockIngredientsEnabled = restockIngredientsEnabled;
     }
 
@@ -110,12 +110,12 @@ public class StockManagement implements Serializable {
         return null;
     }
 
-    public synchronized  List<Ingredient> getIngredients() {
+    public List<Ingredient> getIngredients() {
         Set<Ingredient> ingredientsSet;
             ingredientsSet = ingredientsStock.keySet();
 
 
-        ingredients = new ArrayList<Ingredient>(ingredientsSet);
+        ingredients = new ArrayList<>(ingredientsSet);
         return ingredients;
     }
 
@@ -143,7 +143,7 @@ public class StockManagement implements Serializable {
     }
 
 
-    private void writeObject(ObjectOutputStream oos) throws IOException {
+    /*private void writeObject(ObjectOutputStream oos) throws IOException {
         ArrayList<Dish> serialisedDish = new ArrayList<>(getDishes());
         ArrayList<Ingredient> serialisedIngredients = (ArrayList<Ingredient>) getIngredients();
         ConcurrentHashMap ingredientNumberHashMap = (ConcurrentHashMap) getIngredientsStock();
@@ -169,7 +169,7 @@ public class StockManagement implements Serializable {
         setIngredientsStock((ConcurrentHashMap<Ingredient,Number>)deserializedData.get(2));
         setDishes((ArrayList<Dish>) deserializedData.get(0) );
         setDishesStock((ConcurrentHashMap<Dish, Number>) deserializedData.get(3));
-    }
+    }*/
 
     private void setIngredients(ArrayList<Ingredient> ingredients) {
         this.ingredients = ingredients;

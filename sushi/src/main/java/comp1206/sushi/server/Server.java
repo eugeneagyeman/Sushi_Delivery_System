@@ -23,13 +23,13 @@ import static java.lang.Integer.valueOf;
 public class Server implements ServerInterface, Serializable {
 
     private final Logger logger = LogManager.getLogger("Server");
-    private  ArrayList<Order> orders = new ArrayList<Order>();
-    private  ArrayList<User> users = new ArrayList<User>();
-    private  ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
-    private  ArrayList<Drone> drones = new ArrayList<Drone>();
-    private  ArrayList<Staff> staff = new ArrayList<Staff>();
-    private  ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
-    private  ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
+    private ArrayList<Order> orders = new ArrayList<Order>();
+    private ArrayList<User> users = new ArrayList<User>();
+    private ArrayList<Postcode> postcodes = new ArrayList<Postcode>();
+    private ArrayList<Drone> drones = new ArrayList<Drone>();
+    private ArrayList<Staff> staff = new ArrayList<Staff>();
+    private ArrayList<Supplier> suppliers = new ArrayList<Supplier>();
+    private ArrayList<UpdateListener> listeners = new ArrayList<UpdateListener>();
     private Restaurant restaurant;
     private StockManagement stockManagement;
     private ServerCommunications serverComms;
@@ -457,12 +457,6 @@ public class Server implements ServerInterface, Serializable {
     @Override
     public String getOrderStatus(Order order) {
         return order.getStatus();
-        /*Random rand = new Random();
-        if (rand.nextBoolean()) {
-            return "Complete";
-        } else {
-            return "Pending";
-        }*/
     }
 
     //Postcodes
@@ -477,13 +471,10 @@ public class Server implements ServerInterface, Serializable {
 
     @Override
     public Postcode addPostcode(String code) {
-        //get current postcodes
-        //if matches exisiting one return that one else add it in
 
         for (Postcode existingPostcode : postcodes) {
             if (existingPostcode.getName().equals(code)) {
                 this.notifyUpdate();
-                //System.out.println("Existing postcode");
                 return existingPostcode;
             }
         }
@@ -532,14 +523,6 @@ public class Server implements ServerInterface, Serializable {
     @Override
     public void loadConfiguration(String filename) {
         System.out.println("Loaded configuration: " + filename);
-        users.clear();
-        orders.clear();
-        getDishes().clear();
-        getIngredients().clear();
-        getStaff().clear();
-        getDrones().clear();
-        getPostcodes().clear();
-        getSuppliers().clear();
         try {
             new Configuration(filename);
 
@@ -547,6 +530,41 @@ public class Server implements ServerInterface, Serializable {
             System.err.println("File not found");
         }
 
+    }
+
+    public void clearPanels() {
+        getUsers().clear();
+        getOrders().clear();
+        getDishes().clear();
+        getIngredients().clear();
+        getStaff().clear();
+        getDrones().clear();
+        getPostcodes().clear();
+        getSuppliers().clear();
+    }
+
+    public void stopThreads() {
+        for(Drone drone: drones) {
+            StockManagement.setRestockIngredientsEnabled(false);
+            drone.stop();
+        }
+
+        for(Staff staff: staff) {
+            StockManagement.setRestockDishesEnabled(false);
+            staff.stop();
+        }
+    }
+
+    public void startThreads() {
+        for(Drone drone: drones) {
+            StockManagement.setRestockIngredientsEnabled(true);
+            drone.start();
+        }
+
+        for(Staff staff: staff) {
+            StockManagement.setRestockDishesEnabled(true);
+            staff.start();
+        }
     }
 
     public StockManagement getStockManagement() {
@@ -565,7 +583,6 @@ public class Server implements ServerInterface, Serializable {
     @Override
     public void notifyUpdate() {
         listeners.forEach(listener -> listener.updated(new UpdateEvent()));
-        //test.writeState();
     }
 
 
@@ -723,10 +740,10 @@ public class Server implements ServerInterface, Serializable {
                 String dishName = matcher.group(1);
                 String description = matcher.group(2);
                 Integer price = valueOf(matcher.group(3));
-                Integer restock_threshold = valueOf(matcher.group(4));
-                Integer restock_amount = valueOf(matcher.group(5));
+                Integer restockThreshold = valueOf(matcher.group(4));
+                Integer restockAmount = valueOf(matcher.group(5));
 
-                Dish builtDish = new Dish(dishName, description, price, restock_threshold, restock_amount);
+                Dish builtDish = new Dish(dishName, description, price, restockThreshold, restockAmount);
                 addDish(builtDish);
 
                 Pattern ingredientsDishPattern = Pattern.compile("((\\d+) \\* (\\w+))");

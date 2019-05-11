@@ -144,10 +144,11 @@ public class Staff extends Model implements Runnable, Serializable {
         this.exit=true;
     }
 
-    public String toString() {
-
-        return "STAFF:"+this.getName()+":"+this.getStatus()+":"+this.getFatigue();
+    public void start() {
+        this.exit=false;
+        new Thread(this,this.getName()).start();
     }
+
 
     public StockManagement getStockManagement() {
         return stockManagement;

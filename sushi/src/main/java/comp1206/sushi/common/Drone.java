@@ -25,7 +25,7 @@ public class Drone extends Model implements Runnable, Serializable {
     private BlockingQueue<Ingredient> ingredientQueueInstance;
     private BlockingQueue<Order> orderQueueInstance;
     private ServerCommunications updateCommunications;
-    private static StockManagement stockManagement;
+    private StockManagement stockManagement;
     private volatile boolean exit = false;
 
     public Drone(Number speed, Postcode restaurantBase, ServerCommunications updateCommunications) {
@@ -177,10 +177,9 @@ public class Drone extends Model implements Runnable, Serializable {
                 stockAmt = dishStock.get(currentDish).intValue();
             } catch (NullPointerException emptyDishes) {
                 stockAmt = 0;
-                //
             }
 
-            if (stockAmt <= orderQty.intValue()) {
+            if (stockAmt < orderQty.intValue()) {
                 setStatus("Cannot deliver order" + order.getName() + " as dishes still need to be made", order);
                 System.out.println("Cannot deliver order" + order.getName() + " as dishes still need to be made");
                 enoughDishes = false;
@@ -189,6 +188,7 @@ public class Drone extends Model implements Runnable, Serializable {
                 for (Map.Entry<Dish, Number> e : orderContents.get().entrySet()) {
                     Dish key = e.getKey();
                     Number value = e.getValue();
+                    dishStock.replace(key, dishStock.get(key).intValue() - value.intValue());
                 }
 
             }
@@ -240,10 +240,9 @@ public class Drone extends Model implements Runnable, Serializable {
                                 if (!grabOrder(orderToDeliver)) {
                                     orderQueueInstance.put(orderToDeliver);
                                     System.out.println("Order put back in queue");
+                                    setStatus("Idle");
                                 }
                             }
-                            System.out.println("Couldn't deliver");
-
                         } else if (ingredientQueueInstance.peek() != null) {
                             Ingredient ingredientToCollect = ingredientQueueInstance.take();
                             grabIngredient(ingredientToCollect, base);
@@ -272,8 +271,13 @@ public class Drone extends Model implements Runnable, Serializable {
         this.exit = true;
     }
 
-    public void setStockManagement(StockManagement stockManagement) {
-        Drone.stockManagement = stockManagement;
+    public void start() {
+        this.exit=false;
+        new Thread(this,this.getName()).start();
+    }
+
+    public void setStockManagement(StockManagement stock) {
+        stockManagement = stock;
     }
 
 }
